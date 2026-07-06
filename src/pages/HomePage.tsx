@@ -43,8 +43,8 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: '/assets/action-icons/wallet-vetc.png',
   },
   {
-    label: 'Mở điểm dịch vụ VETC',
-    lines: ['Mở điểm', 'dịch vụ VETC'],
+    label: 'Mở điểm quickservice',
+    lines: ['Mở điểm', 'quickservice'],
     icon: '/assets/action-icons/open-vetc-service-point.png',
     badge: '/assets/action-icons/badge-moi.png',
     to: '/service-point',

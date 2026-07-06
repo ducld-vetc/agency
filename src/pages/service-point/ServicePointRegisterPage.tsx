@@ -252,7 +252,6 @@ const ServicePointRegisterPage: React.FC = () => {
     if (step === 0)
       return form.latLng.trim() && form.province.trim() && form.ward.trim() && Number(form.area) >= 10;
     if (step === 1) return form.ownerName.trim() && form.ownerPhone.trim() && form.ownerId.trim();
-    if (step === 2) return form.facilities.length === FACILITY_CHECKS.length;
     if (step === 3) return PHOTO_SLOTS.filter((l) => form.photos[l]).length >= 3;
     if (step === 4) return form.agree;
     return true;

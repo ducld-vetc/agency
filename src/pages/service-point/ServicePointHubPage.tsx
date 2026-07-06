@@ -35,7 +35,7 @@ const ServicePointHubPage: React.FC = () => {
 
   return (
     <div className="am-sp">
-      <DlsTopNav title="Mở điểm dịch vụ VETC" onBack={() => navigate('/')} />
+      <DlsTopNav title="Mở điểm quickservice" onBack={() => navigate('/')} />
 
       <div className="am-sp__scroll">
         <section className="am-sp-hero am-card">
