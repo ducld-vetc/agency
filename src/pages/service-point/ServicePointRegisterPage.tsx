@@ -4,18 +4,34 @@ import { Camera, Check, MapPin, LocateFixed, X, ChevronRight } from 'lucide-reac
 import {
   DlsBrandButton,
   DlsCheckbox,
+  DlsMultiSelectField,
   DlsNeutralButton,
   DlsSelect,
+  DlsSheetHandle,
   DlsTextField,
   DlsTopNav,
 } from '@dls/components';
 
 const STEPS = [
+  'Phân loại',
   'Địa điểm',
   'Chủ điểm',
   'Pháp lý & CSVC',
   'Ảnh hiện trạng',
   'Xác nhận',
+] as const;
+
+const POINT_TYPES = [
+  {
+    value: 'new',
+    label: 'Điểm mở mới',
+    description: 'Đăng ký điểm dịch vụ mới, chưa từng ký hợp đồng hợp tác với đơn vị trong tập đoàn Tasco.',
+  },
+  {
+    value: 'conversion',
+    label: 'Điểm chuyển đổi',
+    description: 'Chuyển đổi/Bổ sung dịch vụ cung cấp cho điểm đã ký hợp đồng hợp tác với đơn vị trong tập đoàn Tasco.',
+  },
 ] as const;
 
 const PROVINCES: { value: string; label: string; wards: { value: string; label: string }[] }[] = [
@@ -62,13 +78,55 @@ const PROVINCES: { value: string; label: string; wards: { value: string; label: 
   },
 ];
 
-const SUPPORT_SERVICES = [
-  { value: 'towing', label: 'Cứu hộ kéo xe' },
-  { value: 'battery', label: 'Cứu hộ ắc quy' },
-  { value: 'tire', label: 'Vá / thay lốp' },
-  { value: 'fuel', label: 'Tiếp nhiên liệu' },
-  { value: 'repair', label: 'Sửa chữa tại chỗ' },
+const SUPPORT_SERVICE_GROUPS = [
+  {
+    label: 'Bán hàng',
+    options: [
+      { value: 'insurance', label: 'Bảo hiểm' },
+      { value: 'rescue-package', label: 'Gói cứu hộ' },
+    ],
+  },
+  {
+    label: 'Cứu hộ',
+    options: [{ value: 'towing', label: 'Cẩu kéo' }],
+  },
+  {
+    label: 'Xử lý tại chỗ',
+    options: [
+      { value: 'battery', label: 'Kích bình ắc quy' },
+      { value: 'tire', label: 'Xử lý lốp' },
+      { value: 'fuel', label: 'Tiếp nhiên liệu' },
+    ],
+  },
 ] as const;
+
+const RESCUE_VEHICLE_TYPES = [
+  { value: 'Xe kéo cẩu', label: 'Xe kéo cẩu' },
+  { value: 'Xe sàn trượt', label: 'Xe sàn trượt' },
+  { value: 'Xe cẩu quay', label: 'Xe cẩu quay' },
+  { value: '<= 2.5 tấn', label: '<= 2.5 tấn' },
+  { value: '<= 1.4 tấn', label: '<= 1.4 tấn' },
+] as const;
+
+const getSupportServiceLabel = (value: string) => {
+  for (const group of SUPPORT_SERVICE_GROUPS) {
+    const match = group.options.find((opt) => opt.value === value);
+    if (match) return match.label;
+  }
+  return '—';
+};
+
+const getSupportServicesLabel = (values: string[]) =>
+  values.length ? values.map((value) => getSupportServiceLabel(value)).join(', ') : '—';
+
+const hasTowingInfo = (form: {
+  towingVehicleType: string;
+  towingCapacity: string;
+  towingLicensePlate: string;
+}) => Boolean(form.towingVehicleType && form.towingCapacity && form.towingLicensePlate);
+
+const getPointTypeLabel = (value: string) =>
+  POINT_TYPES.find((item) => item.value === value)?.label ?? '—';
 
 const FACILITY_CHECKS = [
   'Biển hiệu đúng mẫu công ty',
@@ -112,14 +170,25 @@ const ServicePointRegisterPage: React.FC = () => {
   const [mapOpen, setMapOpen] = React.useState(false);
   const [draftPin, setDraftPin] = React.useState<{ x: number; y: number } | null>(null);
   const [draftLatLng, setDraftLatLng] = React.useState('');
+  const [towingDialogOpen, setTowingDialogOpen] = React.useState(false);
+  const [pendingServicesDraft, setPendingServicesDraft] = React.useState<string[]>([]);
+  const [towingDraft, setTowingDraft] = React.useState({
+    vehicleType: '',
+    capacity: '',
+    licensePlate: '',
+  });
 
   const [form, setForm] = React.useState({
+    pointType: '',
     address: '',
     province: '',
     ward: '',
     area: '',
     latLng: '',
-    supportService: '',
+    supportServices: [] as string[],
+    towingVehicleType: '',
+    towingCapacity: '',
+    towingLicensePlate: '',
     locationNote: '',
     ownerName: '',
     ownerPhone: '',
@@ -136,6 +205,74 @@ const ServicePointRegisterPage: React.FC = () => {
   });
 
   const update = (patch: Partial<typeof form>) => setForm((prev) => ({ ...prev, ...patch }));
+
+  const applySupportServices = (services: string[]) => {
+    const includesTowing = services.includes('towing');
+    update({
+      supportServices: services,
+      ...(includesTowing
+        ? {}
+        : {
+            towingVehicleType: '',
+            towingCapacity: '',
+            towingLicensePlate: '',
+          }),
+    });
+  };
+
+  const handleServicesConfirm = (draft: string[]) => {
+    if (draft.includes('towing') && !hasTowingInfo(form)) {
+      setPendingServicesDraft(draft);
+      setTowingDraft({
+        vehicleType: form.towingVehicleType,
+        capacity: form.towingCapacity,
+        licensePlate: form.towingLicensePlate,
+      });
+      setTowingDialogOpen(true);
+      return;
+    }
+
+    applySupportServices(draft);
+    setPendingServicesDraft([]);
+  };
+
+  const closeTowingDialog = () => {
+    setTowingDialogOpen(false);
+    if (hasTowingInfo(form)) {
+      setPendingServicesDraft([]);
+      return;
+    }
+
+    const withoutTowing = pendingServicesDraft.filter((item) => item !== 'towing');
+    if (pendingServicesDraft.length > 0) {
+      applySupportServices(withoutTowing);
+    } else {
+      applySupportServices(form.supportServices.filter((item) => item !== 'towing'));
+    }
+    setPendingServicesDraft([]);
+  };
+
+  const confirmTowingDialog = () => {
+    const nextServices = pendingServicesDraft.length
+      ? pendingServicesDraft
+      : form.supportServices.includes('towing')
+        ? form.supportServices
+        : [...form.supportServices, 'towing'];
+
+    update({
+      supportServices: nextServices,
+      towingVehicleType: towingDraft.vehicleType,
+      towingCapacity: towingDraft.capacity,
+      towingLicensePlate: towingDraft.licensePlate.trim().toUpperCase(),
+    });
+    setPendingServicesDraft([]);
+    setTowingDialogOpen(false);
+  };
+
+  const towingDraftValid =
+    towingDraft.vehicleType.trim() &&
+    towingDraft.capacity.trim() &&
+    towingDraft.licensePlate.trim();
 
   const formatCoords = (lat: number, lng: number) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
@@ -249,12 +386,22 @@ const ServicePointRegisterPage: React.FC = () => {
   };
 
   const canNext = () => {
-    if (step === 0)
-      return form.latLng.trim() && form.province.trim() && form.ward.trim() && Number(form.area) >= 10;
-    if (step === 1) return form.ownerName.trim() && form.ownerPhone.trim() && form.ownerId.trim();
-    if (step === 2) return form.facilities.length === FACILITY_CHECKS.length;
-    if (step === 3) return PHOTO_SLOTS.filter((l) => form.photos[l]).length >= 3;
-    if (step === 4) return form.agree;
+    if (step === 0) return Boolean(form.pointType);
+    if (step === 1) {
+      const towingOk =
+        !form.supportServices.includes('towing') || hasTowingInfo(form);
+      return (
+        form.latLng.trim() &&
+        form.province.trim() &&
+        form.ward.trim() &&
+        Number(form.area) >= 10 &&
+        towingOk
+      );
+    }
+    if (step === 2) return form.ownerName.trim() && form.ownerPhone.trim() && form.ownerId.trim();
+    if (step === 3) return form.facilities.length === FACILITY_CHECKS.length;
+    if (step === 4) return PHOTO_SLOTS.filter((l) => form.photos[l]).length >= 3;
+    if (step === 5) return form.agree;
     return true;
   };
 
@@ -305,6 +452,36 @@ const ServicePointRegisterPage: React.FC = () => {
 
       <div className="am-sp__scroll">
         {step === 0 && (
+          <section className="am-card am-sp-form">
+            <h3>Phân loại điểm</h3>
+            <p className="am-sp-form__hint">Chọn loại hình đăng ký phù hợp với điểm dịch vụ của bạn.</p>
+            <div className="am-sp-point-type" role="radiogroup" aria-label="Phân loại điểm">
+              {POINT_TYPES.map((item) => {
+                const selected = form.pointType === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    className={`am-sp-point-type__item${selected ? ' am-sp-point-type__item--on' : ''}`}
+                    onClick={() => update({ pointType: item.value })}
+                  >
+                    <span className="am-sp-point-type__radio" aria-hidden>
+                      {selected && <Check size={12} strokeWidth={3} />}
+                    </span>
+                    <span className="am-sp-point-type__body">
+                      <strong>{item.label}</strong>
+                      <small>{item.description}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {step === 1 && (
           <section className="am-card am-sp-form">
             <h3>Thông tin địa điểm</h3>
             <div className="dls-field">
@@ -365,13 +542,39 @@ const ServicePointRegisterPage: React.FC = () => {
               onChange={(v) => update({ area: v.replace(/\D/g, '') })}
               placeholder="Tối thiểu 10 m²"
             />
-            <DlsSelect
+            <DlsMultiSelectField
               label="Dịch vụ hỗ trợ"
-              value={form.supportService}
-              onChange={(v) => update({ supportService: v })}
-              options={SUPPORT_SERVICES.map((s) => ({ value: s.value, label: s.label }))}
+              value={form.supportServices}
+              onConfirm={handleServicesConfirm}
+              groups={SUPPORT_SERVICE_GROUPS.map((group) => ({
+                label: group.label,
+                options: group.options.map((opt) => ({ value: opt.value, label: opt.label })),
+              }))}
               placeholder="Chọn dịch vụ hỗ trợ"
+              sheetTitle="Dịch vụ hỗ trợ"
             />
+            {form.supportServices.includes('towing') && hasTowingInfo(form) && (
+                <div className="dls-info-banner dls-info-banner--muted">
+                  <strong>Cẩu kéo:</strong> {form.towingVehicleType} · {form.towingCapacity} ·{' '}
+                  {form.towingLicensePlate}
+                  <button
+                    type="button"
+                    className="dls-text-link"
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      setPendingServicesDraft(form.supportServices);
+                      setTowingDraft({
+                        vehicleType: form.towingVehicleType,
+                        capacity: form.towingCapacity,
+                        licensePlate: form.towingLicensePlate,
+                      });
+                      setTowingDialogOpen(true);
+                    }}
+                  >
+                    Sửa
+                  </button>
+                </div>
+              )}
             <DlsTextField
               label="Mô tả vị trí"
               multiline
@@ -383,7 +586,7 @@ const ServicePointRegisterPage: React.FC = () => {
           </section>
         )}
 
-        {step === 1 && (
+        {step === 2 && (
           <section className="am-card am-sp-form">
             <h3>Thông tin chủ điểm</h3>
             <DlsTextField
@@ -419,7 +622,7 @@ const ServicePointRegisterPage: React.FC = () => {
           </section>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <section className="am-card am-sp-form">
             <h3>Pháp lý & cơ sở vật chất</h3>
             <DlsTextField
@@ -470,7 +673,7 @@ const ServicePointRegisterPage: React.FC = () => {
           </section>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <section className="am-card am-sp-form">
             <h3>Ảnh hiện trạng</h3>
             <p className="am-sp-form__hint">Tải ảnh thực tế của điểm (tối thiểu 3 ảnh).</p>
@@ -480,10 +683,29 @@ const ServicePointRegisterPage: React.FC = () => {
           </section>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <section className="am-card am-sp-form">
             <h3>Xem lại & gửi hồ sơ</h3>
             <dl className="am-sp-review">
+              <div>
+                <dt>Phân loại điểm</dt>
+                <dd>{getPointTypeLabel(form.pointType)}</dd>
+              </div>
+              <div>
+                <dt>Dịch vụ hỗ trợ</dt>
+                <dd>
+                  {getSupportServicesLabel(form.supportServices)}
+                  {form.supportServices.includes('towing') && hasTowingInfo(form) && (
+                    <>
+                      <br />
+                      <small>
+                        Cẩu kéo: {form.towingVehicleType} · {form.towingCapacity} ·{' '}
+                        {form.towingLicensePlate}
+                      </small>
+                    </>
+                  )}
+                </dd>
+              </div>
               <div>
                 <dt>Toạ độ (bản đồ)</dt>
                 <dd>{form.latLng || '—'}</dd>
@@ -541,6 +763,68 @@ const ServicePointRegisterPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {towingDialogOpen && (
+        <div
+          className="dls-sheet-overlay"
+          role="dialog"
+          aria-modal
+          aria-label="Thông tin xe cẩu kéo"
+          onClick={closeTowingDialog}
+        >
+          <div
+            className="dls-sheet am-sp-towing-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DlsSheetHandle />
+            <div className="dls-sheet-header">
+              <div className="dls-sheet-header-row">
+                <h2 className="dls-sheet-title">Thông tin cẩu kéo</h2>
+                <button
+                  type="button"
+                  className="dls-sheet-close"
+                  onClick={closeTowingDialog}
+                  aria-label="Đóng"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <div className="dls-sheet-body dls-sheet-body--form">
+              <DlsSelect
+                label="Loại xe cứu hộ"
+                required
+                value={towingDraft.vehicleType}
+                onChange={(v) => setTowingDraft((prev) => ({ ...prev, vehicleType: v }))}
+                options={RESCUE_VEHICLE_TYPES.map((item) => ({
+                  value: item.value,
+                  label: item.label,
+                }))}
+                placeholder="Chọn loại xe cứu hộ"
+              />
+              <DlsTextField
+                label="Trọng tải kéo xe"
+                required
+                value={towingDraft.capacity}
+                onChange={(v) => setTowingDraft((prev) => ({ ...prev, capacity: v }))}
+                placeholder="VD: 2.5 tấn"
+              />
+              <DlsTextField
+                label="Biển số xe"
+                required
+                value={towingDraft.licensePlate}
+                onChange={(v) => setTowingDraft((prev) => ({ ...prev, licensePlate: v }))}
+                placeholder="VD: 51A-123.45"
+              />
+            </div>
+            <div className="dls-sheet-footer dls-sheet-footer--single">
+              <DlsBrandButton disabled={!towingDraftValid} onClick={confirmTowingDialog}>
+                Xác nhận
+              </DlsBrandButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {mapOpen && (
         <div className="am-sp-map-fs" role="dialog" aria-label="Chọn vị trí trên bản đồ">

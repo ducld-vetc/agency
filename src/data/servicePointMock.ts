@@ -1,9 +1,13 @@
+import type { PointLocation } from '../utils/servicePointCoverage';
+
 export type ServicePointStatus =
   | 'draft'
   | 'pending'
   | 'approved'
   | 'rejected'
   | 'activated';
+
+export type ServicePointType = 'new' | 'conversion';
 
 export type CommissionPaymentStatus = 'calculated' | 'pending_payout' | 'paid';
 
@@ -16,6 +20,11 @@ export interface ServicePointRecord {
   areaSqm: number;
   ownerName: string;
   status: ServicePointStatus;
+  pointType: ServicePointType;
+  contractSigned: boolean;
+  assignedArea: string;
+  assignedAreaLabel: string;
+  location?: PointLocation;
   submittedAt?: string;
   reviewedAt?: string;
   activatedAt?: string;
@@ -53,6 +62,21 @@ export const STATUS_VARIANT: Record<
   activated: 'success',
 };
 
+export const POINT_TYPE_LABELS: Record<ServicePointType, string> = {
+  new: 'Điểm mở mới',
+  conversion: 'Điểm chuyển đổi',
+};
+
+export const CONTRACT_LABELS = {
+  signed: 'Đã ký hợp đồng',
+  unsigned: 'Chưa ký HĐ',
+} as const;
+
+export const ASSIGNED_AREAS = [
+  { value: 'hcm', label: 'TP. Hồ Chí Minh' },
+  { value: 'hn', label: 'Hà Nội' },
+] as const;
+
 export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
   {
     id: 'sp-001',
@@ -63,6 +87,11 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     areaSqm: 18,
     ownerName: 'Nguyễn Minh Tuấn',
     status: 'pending',
+    pointType: 'new',
+    contractSigned: false,
+    assignedArea: 'hcm',
+    assignedAreaLabel: 'TP. Hồ Chí Minh',
+    location: { lat: 10.7545, lng: 106.663, zoneType: 'urban' },
     submittedAt: '01/07/2026 09:15',
     timeline: [
       { label: 'Đăng ký hồ sơ', at: '01/07/2026 09:15', done: true },
@@ -80,6 +109,11 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     areaSqm: 25,
     ownerName: 'Trần Thị Hương',
     status: 'activated',
+    pointType: 'conversion',
+    contractSigned: true,
+    assignedArea: 'hcm',
+    assignedAreaLabel: 'TP. Hồ Chí Minh',
+    location: { lat: 10.8411, lng: 106.7725, zoneType: 'urban' },
     submittedAt: '15/05/2026 14:20',
     reviewedAt: '17/05/2026 10:00',
     activatedAt: '22/05/2026 16:45',
@@ -110,6 +144,11 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     areaSqm: 12,
     ownerName: 'Lê Hoàng Nam',
     status: 'rejected',
+    pointType: 'new',
+    contractSigned: false,
+    assignedArea: 'hcm',
+    assignedAreaLabel: 'TP. Hồ Chí Minh',
+    location: { lat: 10.8012, lng: 106.6524, zoneType: 'urban' },
     submittedAt: '20/06/2026 11:30',
     reviewedAt: '22/06/2026 15:00',
     rejectReason: 'Diện tích thực tế chưa đạt tối thiểu 10m² theo ảnh hiện trạng.',
@@ -128,6 +167,11 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     areaSqm: 20,
     ownerName: 'Phạm Văn Đức',
     status: 'approved',
+    pointType: 'conversion',
+    contractSigned: true,
+    assignedArea: 'hn',
+    assignedAreaLabel: 'Hà Nội',
+    location: { lat: 21.0332, lng: 105.7945, zoneType: 'urban' },
     submittedAt: '28/06/2026 08:00',
     reviewedAt: '30/06/2026 09:30',
     timeline: [

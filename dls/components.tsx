@@ -1,5 +1,7 @@
 import React from 'react';
-import { ChevronLeft, Eye, EyeOff, X, Check, Filter, Bell, Settings, Lock, LogOut, ChevronRight, Navigation, Clock } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ChevronLeft, ChevronDown, Eye, EyeOff, X, Check, Filter, Bell, Settings, Lock, LogOut, ChevronRight, Navigation, Clock } from 'lucide-react';
+import { getDlsOverlayRoot } from './portal';
 
 /* ——— Typography helpers ——— */
 export const DlsLabel: React.FC<{ children: React.ReactNode; required?: boolean }> = ({
@@ -95,6 +97,199 @@ export const DlsSelect: React.FC<{
     {error && <p className="dls-field-error" role="alert">{error}</p>}
   </div>
 );
+
+export const DlsSelectGroup: React.FC<{
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  groups: { label: string; options: { value: string; label: string }[] }[];
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+}> = ({ label, value, onChange, groups, placeholder, required, error }) => (
+  <div className="dls-field">
+    <DlsLabel required={required}>{label}</DlsLabel>
+    <select
+      className="dls-select"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-invalid={error ? true : undefined}
+    >
+      {placeholder && (
+        <option value="" disabled>
+          {placeholder}
+        </option>
+      )}
+      {groups.map((group) => (
+        <optgroup key={group.label} label={group.label}>
+          {group.options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+    {error && <p className="dls-field-error" role="alert">{error}</p>}
+  </div>
+);
+
+export type DlsOptionGroup = {
+  label: string;
+  options: { value: string; label: string }[];
+};
+
+const findOptionLabel = (groups: DlsOptionGroup[], value: string) => {
+  for (const group of groups) {
+    const match = group.options.find((opt) => opt.value === value);
+    if (match) return match.label;
+  }
+  return value;
+};
+
+/* ——— Multi-select field (custom sheet, không dùng native picker) ——— */
+export const DlsMultiSelectField: React.FC<{
+  label: string;
+  value: string[];
+  onChange?: (values: string[]) => void;
+  groups: DlsOptionGroup[];
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  sheetTitle?: string;
+  minSelected?: number;
+  onConfirm?: (draft: string[]) => void;
+}> = ({
+  label,
+  value,
+  onChange,
+  groups,
+  placeholder = 'Chọn',
+  required,
+  error,
+  sheetTitle,
+  minSelected = 0,
+  onConfirm,
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const [draft, setDraft] = React.useState<string[]>([]);
+
+  const openSheet = () => {
+    setDraft([...value]);
+    setOpen(true);
+  };
+
+  const closeSheet = () => setOpen(false);
+
+  const toggleDraft = (optionValue: string) => {
+    setDraft((prev) =>
+      prev.includes(optionValue)
+        ? prev.filter((item) => item !== optionValue)
+        : [...prev, optionValue],
+    );
+  };
+
+  const handleConfirm = () => {
+    if (draft.length < minSelected) return;
+    closeSheet();
+    if (onConfirm) {
+      onConfirm(draft);
+      return;
+    }
+    onChange?.(draft);
+  };
+
+  const summary =
+    value.length === 0
+      ? placeholder
+      : value.map((item) => findOptionLabel(groups, item)).join(', ');
+
+  return (
+    <>
+      <div className="dls-field">
+        <DlsLabel required={required}>{label}</DlsLabel>
+        <button
+          type="button"
+          className={`dls-multi-select-trigger${error ? ' dls-multi-select-trigger--error' : ''}`}
+          onClick={openSheet}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+        >
+          <span
+            className={
+              value.length > 0
+                ? 'dls-multi-select-trigger__value'
+                : 'dls-multi-select-trigger__placeholder'
+            }
+          >
+            {summary}
+          </span>
+          <ChevronDown size={16} strokeWidth={2.25} className="dls-multi-select-trigger__chev" aria-hidden />
+        </button>
+        {value.length > 0 && (
+          <div className="dls-multi-select-chips" aria-label="Dịch vụ đã chọn">
+            {value.map((item) => (
+              <span key={item} className="dls-multi-select-chip">
+                {findOptionLabel(groups, item)}
+              </span>
+            ))}
+          </div>
+        )}
+        {error && <p className="dls-field-error" role="alert">{error}</p>}
+      </div>
+
+      {open &&
+        createPortal(
+          <div
+            className="dls-sheet-overlay"
+            role="dialog"
+            aria-modal
+            aria-label={sheetTitle ?? label}
+            onClick={closeSheet}
+          >
+            <div className="dls-sheet dls-multi-select-sheet" onClick={(e) => e.stopPropagation()}>
+              <DlsSheetHeader title={sheetTitle ?? label} onClose={closeSheet} />
+              <div className="dls-sheet-body dls-multi-select-sheet__body">
+                {groups.map((group) => (
+                  <div key={group.label} className="dls-multi-select-group">
+                    <p className="dls-multi-select-group__title">{group.label}</p>
+                    <div className="dls-multi-select-group__list">
+                      {group.options.map((opt) => {
+                        const selected = draft.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            className={`dls-multi-select-item${selected ? ' dls-multi-select-item--on' : ''}`}
+                            onClick={() => toggleDraft(opt.value)}
+                            aria-pressed={selected}
+                          >
+                            <span
+                              className={`dls-checkbox dls-multi-select-item__check${selected ? ' dls-checkbox--on' : ''}`}
+                              aria-hidden
+                            >
+                              {selected && <Check size={14} strokeWidth={3} />}
+                            </span>
+                            <span className="dls-multi-select-item__label">{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="dls-sheet-footer dls-sheet-footer--single">
+                <DlsBrandButton onClick={handleConfirm} disabled={draft.length < minSelected}>
+                  Xác nhận{draft.length > 0 ? ` (${draft.length})` : ''}
+                </DlsBrandButton>
+              </div>
+            </div>
+          </div>,
+          getDlsOverlayRoot(),
+        )}
+    </>
+  );
+};
 
 /* ——— Brand button (DLS Brand button Large/Filled) ——— */
 export const DlsBrandButton: React.FC<{

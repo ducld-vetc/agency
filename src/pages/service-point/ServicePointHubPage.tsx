@@ -17,6 +17,7 @@ import {
   STATUS_LABELS,
   STATUS_VARIANT,
 } from '../../data/servicePointMock';
+import { getPrimaryCoverageInsight } from '../../utils/servicePointCoverage';
 
 const formatMoney = (n: number) => n.toLocaleString('vi-VN');
 
@@ -32,6 +33,10 @@ const ServicePointHubPage: React.FC = () => {
     if (!p.commission) return sum;
     return sum + p.commission.fixed + p.commission.turnoverBonus + p.commission.transactionBonus;
   }, 0);
+  const primaryCoverage = React.useMemo(
+    () => getPrimaryCoverageInsight(MOCK_SERVICE_POINTS),
+    [],
+  );
 
   return (
     <div className="am-sp">
@@ -87,8 +92,20 @@ const ServicePointHubPage: React.FC = () => {
               <MapPin size={22} strokeWidth={2} />
             </span>
             <span className="am-sp-action-row__body">
-              <strong>Điểm của tôi</strong>
-              <span>Theo dõi trạng thái thẩm định & kích hoạt</span>
+              <span className="am-sp-action-row__title-line">
+                <strong>Điểm của tôi</strong>
+                {primaryCoverage && (
+                  <span
+                    className={`am-sp-action-row__badge am-sp-action-row__badge--${primaryCoverage.level}`}
+                  >
+                    Phủ {primaryCoverage.scorePercent}%
+                  </span>
+                )}
+              </span>
+              <span>
+                Theo dõi trạng thái thẩm định & kích hoạt
+                {primaryCoverage ? ` · ${primaryCoverage.coverageTitle}` : ''}
+              </span>
             </span>
             <ChevronRight size={18} className="am-sp-action-row__chev" />
           </button>
