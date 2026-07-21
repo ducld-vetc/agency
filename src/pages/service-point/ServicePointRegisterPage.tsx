@@ -82,7 +82,7 @@ const SUPPORT_SERVICE_GROUPS = [
   {
     label: 'Bán hàng',
     options: [
-      { value: 'insurance', label: 'Bảo hiểm trách nhiệm dân sự Tasco' },
+      { value: 'insurance', label: 'Bảo hiểm TNDS Tasco' },
       { value: 'rescue-package', label: 'Gói cứu hộ VETC' },
     ],
   },
