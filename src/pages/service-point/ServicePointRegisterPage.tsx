@@ -82,13 +82,13 @@ const SUPPORT_SERVICE_GROUPS = [
   {
     label: 'Bán hàng',
     options: [
-      { value: 'insurance', label: 'Bảo hiểm' },
-      { value: 'rescue-package', label: 'Gói cứu hộ' },
+      { value: 'insurance', label: 'Bảo hiểm trách nhiệm dân sự Tasco' },
+      { value: 'rescue-package', label: 'Gói cứu hộ VETC' },
     ],
   },
   {
-    label: 'Cứu hộ',
-    options: [{ value: 'towing', label: 'Cẩu kéo' }],
+    label: 'Cẩu kéo',
+    options: [{ value: 'towing', label: 'Xe gặp sự cố' }],
   },
   {
     label: 'Xử lý tại chỗ',
@@ -555,7 +555,7 @@ const ServicePointRegisterPage: React.FC = () => {
             />
             {form.supportServices.includes('towing') && hasTowingInfo(form) && (
                 <div className="dls-info-banner dls-info-banner--muted">
-                  <strong>Cẩu kéo:</strong> {form.towingVehicleType} · {form.towingCapacity} ·{' '}
+                  <strong>Xe gặp sự cố:</strong> {form.towingVehicleType} · {form.towingCapacity} ·{' '}
                   {form.towingLicensePlate}
                   <button
                     type="button"
@@ -699,7 +699,7 @@ const ServicePointRegisterPage: React.FC = () => {
                     <>
                       <br />
                       <small>
-                        Cẩu kéo: {form.towingVehicleType} · {form.towingCapacity} ·{' '}
+                        Xe gặp sự cố: {form.towingVehicleType} · {form.towingCapacity} ·{' '}
                         {form.towingLicensePlate}
                       </small>
                     </>
