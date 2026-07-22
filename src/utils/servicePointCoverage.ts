@@ -1,5 +1,7 @@
 export type PointZoneType = 'highway' | 'urban' | 'mountain';
 
+export const ZONE_ORDER: PointZoneType[] = ['highway', 'urban', 'mountain'];
+
 export const ZONE_SPACING_KM: Record<
   PointZoneType,
   { min: number; max: number; label: string }
@@ -39,10 +41,44 @@ export interface CoverageInsight {
   hint: string;
 }
 
+export interface ZoneCoverageStat {
+  zoneType: PointZoneType;
+  zoneLabel: string;
+  pointCount: number;
+  targetMinKm: number;
+  targetMaxKm: number;
+  /** null khi chưa đủ ≥ 2 điểm để tính */
+  avgDistanceKm: number | null;
+  scorePercent: number | null;
+  level: CoverageLevel | 'insufficient';
+  levelLabel: string;
+}
+
+export interface ProvinceCoverage {
+  assignedArea: string;
+  assignedAreaLabel: string;
+  totalPoints: number;
+  /** Trung bình % các loại khu vực đã tính được trong tỉnh */
+  avgScorePercent: number | null;
+  level: CoverageLevel | 'insufficient';
+  levelLabel: string;
+  zones: ZoneCoverageStat[];
+}
+
+export interface AverageCoverageSummary {
+  avgScorePercent: number;
+  level: CoverageLevel;
+  levelLabel: string;
+  provinceCount: number;
+  zoneComputedCount: number;
+  totalPoints: number;
+  hint: string;
+}
+
 const LEVEL_LABELS: Record<CoverageLevel, string> = {
-  low: 'Chưa cao',
+  low: 'Thấp',
   medium: 'Trung bình',
-  good: 'Tốt',
+  good: 'Cao',
 };
 
 function haversineKm(a: PointLocation, b: PointLocation): number {
@@ -74,6 +110,62 @@ function resolveLevel(avgKm: number, targetMaxKm: number): CoverageLevel {
   if (avgKm <= targetMaxKm) return 'good';
   if (avgKm <= targetMaxKm * 1.4) return 'medium';
   return 'low';
+}
+
+function scoreFromDistance(avgDistanceKm: number, targetMaxKm: number): number {
+  return Math.min(100, Math.round((targetMaxKm / avgDistanceKm) * 100));
+}
+
+function levelFromScore(scorePercent: number): CoverageLevel {
+  if (scorePercent >= 100) return 'good';
+  if (scorePercent >= 72) return 'medium';
+  return 'low';
+}
+
+function hintForLevel(level: CoverageLevel): string {
+  if (level === 'low') {
+    return 'Khoảng cách giữa các điểm còn xa so với mục tiêu. Nên mở thêm điểm lân cận để tăng độ phủ.';
+  }
+  if (level === 'medium') {
+    return 'Độ phủ đang cải thiện. Cân nhắc bổ sung điểm tại vùng còn khoảng trống.';
+  }
+  return 'Mạng lưới điểm đang đạt mục tiêu khoảng cách cho khu vực này.';
+}
+
+function buildZoneStat(
+  zoneType: PointZoneType,
+  locations: PointLocation[],
+): ZoneCoverageStat {
+  const target = ZONE_SPACING_KM[zoneType];
+  if (locations.length < 2) {
+    return {
+      zoneType,
+      zoneLabel: target.label,
+      pointCount: locations.length,
+      targetMinKm: target.min,
+      targetMaxKm: target.max,
+      avgDistanceKm: null,
+      scorePercent: null,
+      level: 'insufficient',
+      levelLabel: locations.length === 0 ? 'Chưa có điểm' : 'Chưa đủ dữ liệu',
+    };
+  }
+
+  const avgDistanceKm = avgPairwiseDistanceKm(locations);
+  const scorePercent = scoreFromDistance(avgDistanceKm, target.max);
+  const level = resolveLevel(avgDistanceKm, target.max);
+
+  return {
+    zoneType,
+    zoneLabel: target.label,
+    pointCount: locations.length,
+    targetMinKm: target.min,
+    targetMaxKm: target.max,
+    avgDistanceKm,
+    scorePercent,
+    level,
+    levelLabel: LEVEL_LABELS[level],
+  };
 }
 
 export function analyzePointCoverage(points: CoveragePoint[]): CoverageInsight[] {
@@ -108,7 +200,7 @@ export function analyzePointCoverage(points: CoveragePoint[]): CoverageInsight[]
     const target = ZONE_SPACING_KM[bucket.zoneType];
     const avgDistanceKm = avgPairwiseDistanceKm(bucket.locations);
     const level = resolveLevel(avgDistanceKm, target.max);
-    const scorePercent = Math.min(100, Math.round((target.max / avgDistanceKm) * 100));
+    const scorePercent = scoreFromDistance(avgDistanceKm, target.max);
 
     insights.push({
       zoneType: bucket.zoneType,
@@ -123,12 +215,7 @@ export function analyzePointCoverage(points: CoveragePoint[]): CoverageInsight[]
       scorePercent,
       level,
       levelLabel: LEVEL_LABELS[level],
-      hint:
-        level === 'low'
-          ? 'Khoảng cách giữa các điểm còn xa so với mục tiêu. Nên mở thêm điểm lân cận để tăng độ phủ.'
-          : level === 'medium'
-            ? 'Độ phủ đang cải thiện. Cân nhắc bổ sung điểm tại vùng còn khoảng trống.'
-            : 'Mạng lưới điểm đang đạt mục tiêu khoảng cách cho khu vực này.',
+      hint: hintForLevel(level),
     });
   }
 
@@ -139,6 +226,98 @@ export function getPrimaryCoverageInsight(points: CoveragePoint[]): CoverageInsi
   const insights = analyzePointCoverage(points);
   if (insights.length === 0) return null;
   return insights.find((item) => item.level === 'low') ?? insights[0];
+}
+
+/** Phân tích độ phủ theo từng tỉnh / thành — mỗi tỉnh có 3 loại khu vực. */
+export function analyzeCoverageByProvince(points: CoveragePoint[]): ProvinceCoverage[] {
+  const byArea = new Map<
+    string,
+    {
+      assignedAreaLabel: string;
+      byZone: Map<PointZoneType, PointLocation[]>;
+    }
+  >();
+
+  for (const point of points) {
+    if (!point.location || !point.assignedArea) continue;
+    const area = byArea.get(point.assignedArea) ?? {
+      assignedAreaLabel: point.assignedAreaLabel ?? point.assignedArea,
+      byZone: new Map(),
+    };
+    const list = area.byZone.get(point.location.zoneType) ?? [];
+    list.push(point.location);
+    area.byZone.set(point.location.zoneType, list);
+    byArea.set(point.assignedArea, area);
+  }
+
+  const provinces: ProvinceCoverage[] = [];
+
+  for (const [assignedArea, area] of byArea) {
+    const zones = ZONE_ORDER.map((zoneType) =>
+      buildZoneStat(zoneType, area.byZone.get(zoneType) ?? []),
+    );
+
+    const scored = zones.filter((z) => z.scorePercent != null) as Array<
+      ZoneCoverageStat & { scorePercent: number }
+    >;
+    const totalPoints = zones.reduce((sum, z) => sum + z.pointCount, 0);
+    const avgScorePercent =
+      scored.length === 0
+        ? null
+        : Math.round(scored.reduce((sum, z) => sum + z.scorePercent, 0) / scored.length);
+
+    const level =
+      avgScorePercent == null ? ('insufficient' as const) : levelFromScore(avgScorePercent);
+
+    provinces.push({
+      assignedArea,
+      assignedAreaLabel: area.assignedAreaLabel,
+      totalPoints,
+      avgScorePercent,
+      level,
+      levelLabel: level === 'insufficient' ? 'Chưa đủ dữ liệu' : LEVEL_LABELS[level],
+      zones,
+    });
+  }
+
+  return provinces.sort((a, b) => {
+    const scoreA = a.avgScorePercent ?? -1;
+    const scoreB = b.avgScorePercent ?? -1;
+    return scoreA - scoreB;
+  });
+}
+
+/** Độ phủ trung bình toàn mạng lưới điểm của user (dùng trên list / hub). */
+export function getAverageCoverageSummary(points: CoveragePoint[]): AverageCoverageSummary | null {
+  const provinces = analyzeCoverageByProvince(points);
+  const scores: number[] = [];
+  let totalPoints = 0;
+  let zoneComputedCount = 0;
+
+  for (const province of provinces) {
+    totalPoints += province.totalPoints;
+    for (const zone of province.zones) {
+      if (zone.scorePercent != null) {
+        scores.push(zone.scorePercent);
+        zoneComputedCount += 1;
+      }
+    }
+  }
+
+  if (scores.length === 0) return null;
+
+  const avgScorePercent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  const level = levelFromScore(avgScorePercent);
+
+  return {
+    avgScorePercent,
+    level,
+    levelLabel: LEVEL_LABELS[level],
+    provinceCount: provinces.length,
+    zoneComputedCount,
+    totalPoints,
+    hint: hintForLevel(level),
+  };
 }
 
 export function formatKm(value: number): string {

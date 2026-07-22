@@ -17,7 +17,7 @@ import {
   STATUS_LABELS,
   STATUS_VARIANT,
 } from '../../data/servicePointMock';
-import { getPrimaryCoverageInsight } from '../../utils/servicePointCoverage';
+import { getAverageCoverageSummary } from '../../utils/servicePointCoverage';
 
 const formatMoney = (n: number) => n.toLocaleString('vi-VN');
 
@@ -33,8 +33,8 @@ const ServicePointHubPage: React.FC = () => {
     if (!p.commission) return sum;
     return sum + p.commission.fixed + p.commission.turnoverBonus + p.commission.transactionBonus;
   }, 0);
-  const primaryCoverage = React.useMemo(
-    () => getPrimaryCoverageInsight(MOCK_SERVICE_POINTS),
+  const averageCoverage = React.useMemo(
+    () => getAverageCoverageSummary(MOCK_SERVICE_POINTS),
     [],
   );
 
@@ -94,17 +94,19 @@ const ServicePointHubPage: React.FC = () => {
             <span className="am-sp-action-row__body">
               <span className="am-sp-action-row__title-line">
                 <strong>Điểm của tôi</strong>
-                {primaryCoverage && (
+                {averageCoverage && (
                   <span
-                    className={`am-sp-action-row__badge am-sp-action-row__badge--${primaryCoverage.level}`}
+                    className={`am-sp-action-row__badge am-sp-action-row__badge--${averageCoverage.level}`}
                   >
-                    Phủ {primaryCoverage.scorePercent}%
+                    Phủ {averageCoverage.avgScorePercent}%
                   </span>
                 )}
               </span>
               <span>
                 Theo dõi trạng thái thẩm định & kích hoạt
-                {primaryCoverage ? ` · ${primaryCoverage.coverageTitle}` : ''}
+                {averageCoverage
+                  ? ` · Độ phủ TB ${averageCoverage.avgScorePercent}%`
+                  : ''}
               </span>
             </span>
             <ChevronRight size={18} className="am-sp-action-row__chev" />

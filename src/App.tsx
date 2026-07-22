@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import DeviceChrome from './components/DeviceChrome';
 import HomePage from './pages/HomePage';
 import ServicePointCommissionPage from './pages/service-point/ServicePointCommissionPage';
+import ServicePointCoveragePage from './pages/service-point/ServicePointCoveragePage';
 import ServicePointDetailPage from './pages/service-point/ServicePointDetailPage';
 import ServicePointHubPage from './pages/service-point/ServicePointHubPage';
 import ServicePointListPage from './pages/service-point/ServicePointListPage';
@@ -15,6 +16,7 @@ const AppRoutes: React.FC = () => (
     <Route path="/service-point" element={<ServicePointHubPage />} />
     <Route path="/service-point/register" element={<ServicePointRegisterPage />} />
     <Route path="/service-point/points" element={<ServicePointListPage />} />
+    <Route path="/service-point/coverage" element={<ServicePointCoveragePage />} />
     <Route path="/service-point/points/:id" element={<ServicePointDetailPage />} />
     <Route path="/service-point/commission" element={<ServicePointCommissionPage />} />
     <Route path="*" element={<Navigate to="/" replace />} />

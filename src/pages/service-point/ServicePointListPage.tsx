@@ -22,9 +22,7 @@ import {
   STATUS_VARIANT,
 } from '../../data/servicePointMock';
 import {
-  analyzePointCoverage,
-  formatKm,
-  getPrimaryCoverageInsight,
+  getAverageCoverageSummary,
 } from '../../utils/servicePointCoverage';
 
 const STATUS_FILTERS: { key: 'all' | ServicePointStatus; label: string }[] = [
@@ -186,13 +184,8 @@ const ServicePointListPage: React.FC = () => {
     [advancedFilter],
   );
 
-  const coverageInsights = React.useMemo(
-    () => analyzePointCoverage(coverageSource),
-    [coverageSource],
-  );
-
-  const primaryCoverage = React.useMemo(
-    () => getPrimaryCoverageInsight(coverageSource),
+  const averageCoverage = React.useMemo(
+    () => getAverageCoverageSummary(coverageSource),
     [coverageSource],
   );
 
@@ -256,71 +249,48 @@ const ServicePointListPage: React.FC = () => {
           </div>
         )}
 
-        {primaryCoverage ? (
+        {averageCoverage ? (
           <section
-            className={`am-sp-coverage am-card am-sp-coverage--${primaryCoverage.level}`}
-            aria-label="Mức độ phủ điểm"
+            className={`am-sp-coverage am-card am-sp-coverage--${averageCoverage.level} am-sp-coverage--compact`}
+            aria-label="Độ phủ trung bình"
           >
-            <div className="am-sp-coverage__head">
-              <span className="am-sp-coverage__icon" aria-hidden>
-                <MapPinned size={20} strokeWidth={2.25} />
-              </span>
-              <div>
-                <p className="am-sp-coverage__eyebrow">Mức độ phủ · {primaryCoverage.coverageTitle}</p>
-                <h3 className="am-sp-coverage__title">{primaryCoverage.levelLabel}</h3>
-              </div>
-              <span className="am-sp-coverage__score">{primaryCoverage.scorePercent}%</span>
-            </div>
-
-            <div className="am-sp-coverage__metrics">
-              <div>
-                <span>Khoảng cách TB</span>
-                <strong>{formatKm(primaryCoverage.avgDistanceKm)} km</strong>
-              </div>
-              <div>
-                <span>Mục tiêu phủ</span>
-                <strong>
-                  {primaryCoverage.targetMinKm}–{primaryCoverage.targetMaxKm} km
-                </strong>
-              </div>
-              <div>
-                <span>Số điểm</span>
-                <strong>{primaryCoverage.pointCount} điểm</strong>
-              </div>
-            </div>
-
-            <div
-              className="am-sp-coverage__bar"
-              role="progressbar"
-              aria-valuenow={primaryCoverage.scorePercent}
-              aria-valuemin={0}
-              aria-valuemax={100}
+            <button
+              type="button"
+              className="am-sp-coverage__nav"
+              onClick={() => navigate('/service-point/coverage')}
             >
-              <span style={{ width: `${primaryCoverage.scorePercent}%` }} />
-            </div>
-
-            <p className="am-sp-coverage__hint">{primaryCoverage.hint}</p>
-
-            {coverageInsights.length > 1 && (
-              <p className="am-sp-coverage__subhint">
-                Đang theo dõi {coverageInsights.length} nhóm địa bàn / loại hình tuyến.
-              </p>
-            )}
-
-            {primaryCoverage.level === 'low' && (
-              <button
-                type="button"
-                className="am-sp-coverage__cta"
-                onClick={() => navigate('/service-point/register')}
+              <div className="am-sp-coverage__head">
+                <span className="am-sp-coverage__icon" aria-hidden>
+                  <MapPinned size={20} strokeWidth={2.25} />
+                </span>
+                <div>
+                  <p className="am-sp-coverage__eyebrow">Độ phủ trung bình</p>
+                  <h3 className="am-sp-coverage__title">{averageCoverage.levelLabel}</h3>
+                </div>
+                <span className="am-sp-coverage__score">{averageCoverage.avgScorePercent}%</span>
+              </div>
+              <div
+                className="am-sp-coverage__bar"
+                role="progressbar"
+                aria-valuenow={averageCoverage.avgScorePercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
               >
-                Đăng ký thêm điểm lân cận
-              </button>
-            )}
+                <span style={{ width: `${averageCoverage.avgScorePercent}%` }} />
+              </div>
+              <p className="am-sp-coverage__hint">
+                {averageCoverage.hint} Xem chi tiết theo tỉnh/thành.
+              </p>
+              <span className="am-sp-coverage__link">
+                Tỷ lệ độ phủ theo tỉnh/thành
+                <ChevronRight size={16} aria-hidden />
+              </span>
+            </button>
           </section>
         ) : (
           <section className="am-sp-coverage am-card am-sp-coverage--empty">
             <p className="am-sp-coverage__hint">
-              Cần ít nhất 2 điểm cùng địa bàn và loại tuyến để đánh giá mức độ phủ.
+              Cần ít nhất 2 điểm cùng tỉnh/thành và loại khu vực để đánh giá độ phủ trung bình.
             </p>
           </section>
         )}
