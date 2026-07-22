@@ -1112,6 +1112,89 @@
   line-height: 1.4;
 }
 
+/* ——— Zone type (compact 3-up) ——— */
+.am-sp-zone-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dls-space-8);
+}
+
+.am-sp-zone-field__hint {
+  margin: 0;
+  font-weight: 600;
+  color: var(--dls-primary);
+}
+
+.am-sp-zone-field__hint .dls-required {
+  font-weight: 700;
+}
+
+.am-sp-zone-type {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.am-sp-zone-type__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 10px 6px;
+  border: 1.5px solid var(--dls-outline-variant);
+  border-radius: var(--dls-radius-12);
+  background: var(--dls-theme);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.am-sp-zone-type__item strong {
+  font-size: var(--dls-text-sm);
+  font-weight: 700;
+  color: var(--dls-primary);
+  line-height: 1.2;
+}
+
+.am-sp-zone-type__item small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dls-secondary);
+  line-height: 1.2;
+}
+
+.am-sp-zone-type__item--on {
+  border-color: var(--dls-brand);
+  background: var(--dls-brand-light);
+  box-shadow: 0 0 0 1px rgba(37, 165, 94, 0.2);
+}
+
+.am-sp-zone-type__item--on strong {
+  color: var(--dls-brand);
+}
+
+.am-sp-zone-type__item--on small {
+  color: var(--dls-brand);
+  opacity: 0.85;
+}
+
+.am-sp-zone-type__check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dls-brand);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ——— Towing info sheet ——— */
 .am-sp-towing-sheet .dls-sheet-body--form {
   padding-top: 0;

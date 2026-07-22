@@ -11,6 +11,7 @@ import {
   DlsTextField,
   DlsTopNav,
 } from '@dls/components';
+import { PointZoneType, ZONE_SPACING_KM } from '../../utils/servicePointCoverage';
 
 const STEPS = [
   'Phân loại',
@@ -33,6 +34,28 @@ const POINT_TYPES = [
     description: 'Chuyển đổi/Bổ sung dịch vụ cung cấp cho điểm đã ký hợp đồng hợp tác với đơn vị trong tập đoàn Tasco.',
   },
 ] as const;
+
+const ZONE_TYPES: {
+  value: PointZoneType;
+  label: string;
+  range: string;
+}[] = [
+  {
+    value: 'highway',
+    label: ZONE_SPACING_KM.highway.label,
+    range: `${ZONE_SPACING_KM.highway.min}–${ZONE_SPACING_KM.highway.max} km`,
+  },
+  {
+    value: 'urban',
+    label: ZONE_SPACING_KM.urban.label,
+    range: `${ZONE_SPACING_KM.urban.min}–${ZONE_SPACING_KM.urban.max} km`,
+  },
+  {
+    value: 'mountain',
+    label: ZONE_SPACING_KM.mountain.label,
+    range: `${ZONE_SPACING_KM.mountain.min}–${ZONE_SPACING_KM.mountain.max} km`,
+  },
+];
 
 const PROVINCES: { value: string; label: string; wards: { value: string; label: string }[] }[] = [
   {
@@ -128,6 +151,9 @@ const hasTowingInfo = (form: {
 const getPointTypeLabel = (value: string) =>
   POINT_TYPES.find((item) => item.value === value)?.label ?? '—';
 
+const getZoneTypeLabel = (value: string) =>
+  ZONE_TYPES.find((item) => item.value === value)?.label ?? '—';
+
 const FACILITY_CHECKS = [
   'Biển hiệu đúng mẫu công ty',
   'Bàn ghế phục vụ khách hàng',
@@ -180,6 +206,7 @@ const ServicePointRegisterPage: React.FC = () => {
 
   const [form, setForm] = React.useState({
     pointType: '',
+    zoneType: '' as PointZoneType | '',
     address: '',
     province: '',
     ward: '',
@@ -386,7 +413,7 @@ const ServicePointRegisterPage: React.FC = () => {
   };
 
   const canNext = () => {
-    if (step === 0) return Boolean(form.pointType);
+    if (step === 0) return Boolean(form.pointType && form.zoneType);
     if (step === 1) {
       const towingOk =
         !form.supportServices.includes('towing') || hasTowingInfo(form);
@@ -477,6 +504,35 @@ const ServicePointRegisterPage: React.FC = () => {
                   </button>
                 );
               })}
+            </div>
+
+            <div className="am-sp-zone-field">
+              <p className="am-sp-form__hint am-sp-zone-field__hint">
+                Loại khu vực điểm <span className="dls-required">*</span>
+              </p>
+              <div className="am-sp-zone-type" role="radiogroup" aria-label="Loại khu vực điểm">
+                {ZONE_TYPES.map((item) => {
+                  const selected = form.zoneType === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={`am-sp-zone-type__item${selected ? ' am-sp-zone-type__item--on' : ''}`}
+                      onClick={() => update({ zoneType: item.value })}
+                    >
+                      {selected && (
+                        <span className="am-sp-zone-type__check" aria-hidden>
+                          <Check size={12} strokeWidth={3} />
+                        </span>
+                      )}
+                      <strong>{item.label}</strong>
+                      <small>{item.range}</small>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </section>
         )}
@@ -690,6 +746,10 @@ const ServicePointRegisterPage: React.FC = () => {
               <div>
                 <dt>Phân loại điểm</dt>
                 <dd>{getPointTypeLabel(form.pointType)}</dd>
+              </div>
+              <div>
+                <dt>Loại khu vực</dt>
+                <dd>{getZoneTypeLabel(form.zoneType)}</dd>
               </div>
               <div>
                 <dt>Dịch vụ hỗ trợ</dt>
