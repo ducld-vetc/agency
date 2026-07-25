@@ -31,17 +31,37 @@ export interface ServicePointRecord {
   rejectReason?: string;
   timeline: { label: string; at?: string; done: boolean }[];
   commission?: {
-    fixed: number;
-    turnoverBonus: number;
-    transactionBonus: number;
-    turnoverProgress: number;
-    transactionProgress: number;
-    turnoverTarget: number;
-    transactionTarget: number;
+    /** Mốc 1 — hoàn thành mở điểm QS + được duyệt (điểm mở mới) */
+    openingBonus: number;
+    /** Mốc 2 — ≥ 15 đơn thành công */
+    ordersBonus: number;
+    /** Mốc 3 — hoạt động cứu hộ đầu tiên */
+    firstRescueBonus: number;
+    /** Hoa hồng điểm chuyển đổi (nếu pointType = conversion) */
+    conversionBonus?: number;
+    /** Chăm sóc tháng — ≥ 30 đơn thành công/tháng */
+    monthlyCareBonus?: number;
+    ordersProgress: number;
+    ordersTarget: number;
+    firstRescueDone: boolean;
+    /** Số tiền đã chi trả thực tế (≤ tổng ghi nhận) */
+    paidAmount: number;
     paymentStatus: CommissionPaymentStatus;
     payoutDate?: string;
   };
 }
+
+/** Tổng hoa hồng đã ghi nhận trên 1 điểm */
+export const sumCommission = (c: NonNullable<ServicePointRecord['commission']>) =>
+  c.openingBonus +
+  c.ordersBonus +
+  c.firstRescueBonus +
+  (c.conversionBonus ?? 0) +
+  (c.monthlyCareBonus ?? 0);
+
+/** Số tiền còn chờ chi trả */
+export const pendingCommission = (c: NonNullable<ServicePointRecord['commission']>) =>
+  Math.max(0, sumCommission(c) - c.paidAmount);
 
 export const STATUS_LABELS: Record<ServicePointStatus, string> = {
   draft: 'Nháp',
@@ -124,13 +144,14 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
       { label: 'Đã kích hoạt (GD đầu tiên)', at: '22/05/2026 16:45', done: true },
     ],
     commission: {
-      fixed: 500_000,
-      turnoverBonus: 200_000,
-      transactionBonus: 100_000,
-      turnoverProgress: 12_400_000,
-      transactionProgress: 58,
-      turnoverTarget: 10_000_000,
-      transactionTarget: 50,
+      openingBonus: 0,
+      ordersBonus: 0,
+      firstRescueBonus: 0,
+      conversionBonus: 500_000,
+      ordersProgress: 0,
+      ordersTarget: 15,
+      firstRescueDone: false,
+      paidAmount: 500_000,
       paymentStatus: 'paid',
       payoutDate: '10/06/2026',
     },
@@ -181,6 +202,18 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
       { label: 'Đã duyệt', at: '07/06/2026 09:00', done: true },
       { label: 'Đã kích hoạt', at: '12/06/2026 14:00', done: true },
     ],
+    commission: {
+      openingBonus: 500_000,
+      ordersBonus: 500_000,
+      firstRescueBonus: 0,
+      monthlyCareBonus: 200_000,
+      ordersProgress: 18,
+      ordersTarget: 15,
+      firstRescueDone: false,
+      paidAmount: 500_000,
+      paymentStatus: 'pending_payout',
+      payoutDate: '10/07/2026',
+    },
   },
   {
     id: 'sp-006',
@@ -393,8 +426,42 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
   },
 ];
 
+/** Chính sách hoa hồng điểm mở mới — tối đa 1.500.000đ/điểm */
 export const COMMISSION_POLICY = [
-  { label: 'Hoa hồng cố định', amount: 500_000, note: 'Khi điểm đã kích hoạt' },
-  { label: 'Thưởng doanh thu tháng đầu', amount: 200_000, note: 'Doanh thu > 10.000.000 đ' },
-  { label: 'Thưởng giao dịch tháng đầu', amount: 100_000, note: '> 50 giao dịch' },
+  {
+    label: 'Hoàn thành mở điểm',
+    amount: 500_000,
+    note: 'Mở điểm Quick Service và được duyệt',
+  },
+  {
+    label: '≥15 đơn thành công',
+    amount: 500_000,
+    note: 'Phát sinh tối thiểu 15 đơn thành công',
+  },
+  {
+    label: 'Cứu hộ đầu tiên',
+    amount: 500_000,
+    note: 'Phát sinh hoạt động cứu hộ đầu tiên',
+  },
+];
+
+/** Hoa hồng điểm chuyển đổi (điểm BH Tasco đang liên kết) */
+export const CONVERSION_COMMISSION = {
+  label: 'Điểm chuyển đổi',
+  amount: 500_000,
+  note: 'Hoàn thành chuyển đổi, tải app VETC Provider & Agency, xác nhận hoạt động',
+};
+
+/** Chăm sóc / hoa hồng hàng tháng */
+export const MONTHLY_CARE_POLICY = [
+  {
+    label: 'Chăm sóc theo đơn',
+    amount: 200_000,
+    note: '≥ 30 đơn thành công/tháng (điểm mở mới)',
+  },
+  {
+    label: 'Hoa hồng doanh thu bán hàng',
+    amount: 0,
+    note: '1% / 2% / 3% khi DT tháng > 10 / 15 / 30 triệu (chưa VAT)',
+  },
 ];

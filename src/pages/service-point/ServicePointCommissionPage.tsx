@@ -1,7 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DlsTopNav } from '@dls/components';
-import { COMMISSION_POLICY, MOCK_SERVICE_POINTS } from '../../data/servicePointMock';
+import {
+  COMMISSION_POLICY,
+  CONVERSION_COMMISSION,
+  MOCK_SERVICE_POINTS,
+  MONTHLY_CARE_POLICY,
+  POINT_TYPE_LABELS,
+  pendingCommission,
+  sumCommission,
+} from '../../data/servicePointMock';
 
 const formatMoney = (n: number) => n.toLocaleString('vi-VN');
 
@@ -11,20 +19,18 @@ const PAYMENT_LABELS = {
   paid: 'Đã chi trả',
 } as const;
 
+const MAX_NEW_POINT = COMMISSION_POLICY.reduce((s, i) => s + i.amount, 0);
+
 const ServicePointCommissionPage: React.FC = () => {
   const navigate = useNavigate();
 
   const activatedPoints = MOCK_SERVICE_POINTS.filter((p) => p.commission);
-  const totalEarned = activatedPoints.reduce((sum, p) => {
-    const c = p.commission!;
-    return sum + c.fixed + c.turnoverBonus + c.transactionBonus;
-  }, 0);
-  const pendingPayout = activatedPoints
-    .filter((p) => p.commission?.paymentStatus === 'pending_payout')
-    .reduce((sum, p) => {
-      const c = p.commission!;
-      return sum + c.fixed + c.turnoverBonus + c.transactionBonus;
-    }, 0);
+  const totalEarned = activatedPoints.reduce((sum, p) => sum + sumCommission(p.commission!), 0);
+  const totalPaid = activatedPoints.reduce((sum, p) => sum + p.commission!.paidAmount, 0);
+  const totalPending = activatedPoints.reduce(
+    (sum, p) => sum + pendingCommission(p.commission!),
+    0,
+  );
 
   return (
     <div className="am-sp">
@@ -32,32 +38,42 @@ const ServicePointCommissionPage: React.FC = () => {
 
       <div className="am-sp__scroll">
         <section className="am-sp-commission-hero am-card">
-          <span>Tổng hoa hồng đã kiếm</span>
+          <span>Tổng hoa hồng ghi nhận</span>
           <strong>
             {formatMoney(totalEarned)}
             <sup className="am-money__unit">đ</sup>
           </strong>
           <div className="am-sp-commission-hero__sub">
             <div>
-              <em>Chờ chi trả</em>
+              <em>Đã chi trả</em>
               <b>
-                {formatMoney(pendingPayout)}
+                {formatMoney(totalPaid)}
                 <sup className="am-money__unit">đ</sup>
               </b>
             </div>
             <div>
-              <em>Đã chi trả</em>
+              <em>Chờ chi trả</em>
               <b>
-                {formatMoney(totalEarned - pendingPayout)}
+                {formatMoney(totalPending)}
                 <sup className="am-money__unit">đ</sup>
               </b>
             </div>
           </div>
-          <p className="am-sp-commission-hero__note">Chi trả ngày 10 hàng tháng cho kỳ trước.</p>
+          <p className="am-sp-commission-hero__note">
+            Chi trả ngày 10 hàng tháng cho kỳ trước. Chi tiết theo từng điểm bên dưới.
+          </p>
         </section>
 
         <section className="am-card am-sp-policy am-sp-policy--compact">
-          <h3>Cơ cấu hoa hồng</h3>
+          <h3>Quyền lợi điểm mở mới</h3>
+          <p className="am-sp-policy__lead">
+            Tối đa{' '}
+            <strong>
+              {formatMoney(MAX_NEW_POINT)}
+              <sup className="am-money__unit">đ</sup>
+            </strong>
+            /điểm khi đủ 3 mốc
+          </p>
           <ul>
             {COMMISSION_POLICY.map((item) => (
               <li key={item.label}>
@@ -66,9 +82,41 @@ const ServicePointCommissionPage: React.FC = () => {
                   +{formatMoney(item.amount)}
                   <sup className="am-money__unit">đ</sup>
                 </strong>
+                <em>{item.note}</em>
               </li>
             ))}
           </ul>
+
+          <div className="am-sp-policy-benefits">
+            <h4>Quyền lợi khác</h4>
+            <div className="am-sp-policy-benefits__row">
+              <span>
+                <strong>{CONVERSION_COMMISSION.label}</strong>
+                <em>{CONVERSION_COMMISSION.note}</em>
+              </span>
+              <b>
+                +{formatMoney(CONVERSION_COMMISSION.amount)}
+                <sup className="am-money__unit">đ</sup>
+              </b>
+            </div>
+            {MONTHLY_CARE_POLICY.map((item) => (
+              <div key={item.label} className="am-sp-policy-benefits__row">
+                <span>
+                  <strong>{item.label}</strong>
+                  <em>{item.note}</em>
+                </span>
+                {item.amount > 0 ? (
+                  <b>
+                    +{formatMoney(item.amount)}
+                    <sup className="am-money__unit">đ</sup>
+                    /tháng
+                  </b>
+                ) : (
+                  <b>1% / 2% / 3%</b>
+                )}
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="am-sp-section-head am-sp-section-head--pad">
@@ -83,9 +131,10 @@ const ServicePointCommissionPage: React.FC = () => {
           <ul className="am-sp-commission-list">
             {activatedPoints.map((point) => {
               const c = point.commission!;
-              const total = c.fixed + c.turnoverBonus + c.transactionBonus;
-              const turnoverPct = Math.min(100, (c.turnoverProgress / c.turnoverTarget) * 100);
-              const txnPct = Math.min(100, (c.transactionProgress / c.transactionTarget) * 100);
+              const total = sumCommission(c);
+              const pending = pendingCommission(c);
+              const isConversion = point.pointType === 'conversion';
+              const ordersPct = Math.min(100, (c.ordersProgress / c.ordersTarget) * 100);
 
               return (
                 <li key={point.id} className="am-card am-sp-commission-card">
@@ -95,61 +144,110 @@ const ServicePointCommissionPage: React.FC = () => {
                       {PAYMENT_LABELS[c.paymentStatus]}
                     </span>
                   </div>
+                  <p className="am-sp-commission-card__type">
+                    {POINT_TYPE_LABELS[point.pointType]}
+                  </p>
 
                   <div className="am-sp-commission-card__rows">
+                    {isConversion ? (
+                      <div>
+                        <span>Hoa hồng chuyển đổi</span>
+                        <b>
+                          {formatMoney(c.conversionBonus ?? 0)}
+                          <sup className="am-money__unit">đ</sup>
+                        </b>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span>Hoàn thành mở điểm</span>
+                          <b>
+                            {formatMoney(c.openingBonus)}
+                            <sup className="am-money__unit">đ</sup>
+                          </b>
+                        </div>
+                        <div>
+                          <span>≥15 đơn thành công</span>
+                          <b>
+                            {formatMoney(c.ordersBonus)}
+                            <sup className="am-money__unit">đ</sup>
+                          </b>
+                        </div>
+                        <div>
+                          <span>Cứu hộ đầu tiên</span>
+                          <b>
+                            {formatMoney(c.firstRescueBonus)}
+                            <sup className="am-money__unit">đ</sup>
+                          </b>
+                        </div>
+                        {(c.monthlyCareBonus ?? 0) > 0 && (
+                          <div>
+                            <span>Chăm sóc tháng</span>
+                            <b>
+                              {formatMoney(c.monthlyCareBonus!)}
+                              <sup className="am-money__unit">đ</sup>
+                            </b>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {!isConversion && (
+                    <>
+                      <div className="am-sp-progress">
+                        <div className="am-sp-progress__label">
+                          <span>Đơn thành công</span>
+                          <em>
+                            {c.ordersProgress} / {c.ordersTarget}
+                          </em>
+                        </div>
+                        <div className="am-sp-progress__bar">
+                          <span style={{ width: `${ordersPct}%` }} />
+                        </div>
+                      </div>
+
+                      <div className="am-sp-progress">
+                        <div className="am-sp-progress__label">
+                          <span>Cứu hộ đầu tiên</span>
+                          <em>{c.firstRescueDone ? 'Đã phát sinh' : 'Chưa phát sinh'}</em>
+                        </div>
+                        <div className="am-sp-progress__bar">
+                          <span style={{ width: c.firstRescueDone ? '100%' : '0%' }} />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="am-sp-commission-card__settle">
                     <div>
-                      <span>Hoa hồng cố định</span>
+                      <span>Tổng ghi nhận</span>
                       <b>
-                        {formatMoney(c.fixed)}
+                        {formatMoney(total)}
                         <sup className="am-money__unit">đ</sup>
                       </b>
                     </div>
                     <div>
-                      <span>Thưởng doanh thu</span>
-                      <b>
-                        {formatMoney(c.turnoverBonus)}
+                      <span>Đã chi trả</span>
+                      <b className="am-sp-commission-card__settle--paid">
+                        {formatMoney(c.paidAmount)}
                         <sup className="am-money__unit">đ</sup>
                       </b>
                     </div>
                     <div>
-                      <span>Thưởng giao dịch</span>
-                      <b>
-                        {formatMoney(c.transactionBonus)}
+                      <span>Chờ chi trả</span>
+                      <b className="am-sp-commission-card__settle--pending">
+                        {formatMoney(pending)}
                         <sup className="am-money__unit">đ</sup>
                       </b>
                     </div>
-                  </div>
-
-                  <div className="am-sp-progress">
-                    <div className="am-sp-progress__label">
-                      <span>Doanh thu tháng đầu</span>
-                      <em>
-                        {formatMoney(c.turnoverProgress)} / {formatMoney(c.turnoverTarget)} đ
-                      </em>
-                    </div>
-                    <div className="am-sp-progress__bar">
-                      <span style={{ width: `${turnoverPct}%` }} />
-                    </div>
-                  </div>
-
-                  <div className="am-sp-progress">
-                    <div className="am-sp-progress__label">
-                      <span>Số giao dịch tháng đầu</span>
-                      <em>
-                        {c.transactionProgress} / {c.transactionTarget}
-                      </em>
-                    </div>
-                    <div className="am-sp-progress__bar">
-                      <span style={{ width: `${txnPct}%` }} />
-                    </div>
-                  </div>
-
-                  <div className="am-sp-commission-card__foot">
-                    <span>
-                      Tổng: {formatMoney(total)}
-                      <sup className="am-money__unit">đ</sup>
-                    </span>
-                    {c.payoutDate && <span>Chi trả: {c.payoutDate}</span>}
+                    {c.payoutDate && (
+                      <p className="am-sp-commission-card__settle-note">
+                        {pending > 0
+                          ? `Dự kiến chi trả: ${c.payoutDate}`
+                          : `Đã chi trả: ${c.payoutDate}`}
+                      </p>
+                    )}
                   </div>
                 </li>
               );

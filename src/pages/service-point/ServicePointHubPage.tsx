@@ -1,27 +1,31 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  BadgeCheck,
   Calendar,
   ChevronRight,
   Gift,
+  LifeBuoy,
   MapPin,
+  PackageCheck,
   PlusCircle,
-  Receipt,
-  TrendingUp,
   Wallet,
 } from 'lucide-react';
 import { DlsStatusBadge, DlsTopNav } from '@dls/components';
 import {
   COMMISSION_POLICY,
+  CONVERSION_COMMISSION,
   MOCK_SERVICE_POINTS,
+  MONTHLY_CARE_POLICY,
   STATUS_LABELS,
   STATUS_VARIANT,
+  sumCommission,
 } from '../../data/servicePointMock';
 import { getAverageCoverageSummary } from '../../utils/servicePointCoverage';
 
 const formatMoney = (n: number) => n.toLocaleString('vi-VN');
 
-const POLICY_ICONS = [Gift, TrendingUp, Receipt] as const;
+const POLICY_ICONS = [BadgeCheck, PackageCheck, LifeBuoy] as const;
 const MAX_COMMISSION = COMMISSION_POLICY.reduce((sum, item) => sum + item.amount, 0);
 
 const ServicePointHubPage: React.FC = () => {
@@ -31,7 +35,7 @@ const ServicePointHubPage: React.FC = () => {
   const activatedCount = MOCK_SERVICE_POINTS.filter((p) => p.status === 'activated').length;
   const commissionTotal = MOCK_SERVICE_POINTS.reduce((sum, p) => {
     if (!p.commission) return sum;
-    return sum + p.commission.fixed + p.commission.turnoverBonus + p.commission.transactionBonus;
+    return sum + sumCommission(p.commission);
   }, 0);
   const averageCoverage = React.useMemo(
     () => getAverageCoverageSummary(MOCK_SERVICE_POINTS),
@@ -47,8 +51,8 @@ const ServicePointHubPage: React.FC = () => {
           <p className="am-sp-hero__eyebrow">Chính sách phát triển điểm</p>
           <h2 className="am-sp-hero__title">Phát triển mạng lưới điểm dịch vụ VETC</h2>
           <p className="am-sp-hero__desc">
-            Đăng ký hồ sơ, theo dõi thẩm định trong 48 giờ làm việc và nhận hoa hồng khi điểm
-            kích hoạt.
+            Đăng ký hồ sơ, theo dõi thẩm định trong 48 giờ làm việc và nhận hoa hồng theo mốc
+            mở điểm & vận hành.
           </p>
         </section>
 
@@ -179,12 +183,12 @@ const ServicePointHubPage: React.FC = () => {
             <div>
               <h3>Chính sách hoa hồng</h3>
               <p>
-                Tối đa{' '}
+                Điểm mở mới tối đa{' '}
                 <strong>
                   {formatMoney(MAX_COMMISSION)}
                   <sup className="am-money__unit">đ</sup>
-                </strong>{' '}
-                / điểm kích hoạt
+                </strong>
+                /điểm
               </p>
             </div>
           </div>
@@ -209,6 +213,36 @@ const ServicePointHubPage: React.FC = () => {
               );
             })}
           </ul>
+
+          <div className="am-sp-policy-extra">
+            <div className="am-sp-policy-extra__row">
+              <span>
+                <strong>{CONVERSION_COMMISSION.label}</strong>
+                <em>{CONVERSION_COMMISSION.note}</em>
+              </span>
+              <b>
+                +{formatMoney(CONVERSION_COMMISSION.amount)}
+                <sup className="am-money__unit">đ</sup>
+              </b>
+            </div>
+            {MONTHLY_CARE_POLICY.map((item) => (
+              <div key={item.label} className="am-sp-policy-extra__row">
+                <span>
+                  <strong>{item.label}</strong>
+                  <em>{item.note}</em>
+                </span>
+                {item.amount > 0 ? (
+                  <b>
+                    +{formatMoney(item.amount)}
+                    <sup className="am-money__unit">đ</sup>
+                    /tháng
+                  </b>
+                ) : (
+                  <b>1–3%</b>
+                )}
+              </div>
+            ))}
+          </div>
 
           <div className="am-sp-policy-payout">
             <Calendar size={16} strokeWidth={2} aria-hidden />

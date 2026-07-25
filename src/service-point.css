@@ -568,6 +568,7 @@
   font-weight: 600;
   color: var(--dls-primary);
   line-height: 1.3;
+  white-space: nowrap;
 }
 
 .am-sp-policy-tier__body span {
@@ -599,6 +600,52 @@
 .am-sp-policy-payout strong {
   color: var(--dls-primary);
   font-weight: 700;
+}
+
+.am-sp-policy-extra {
+  margin: 0 var(--dls-space-16) var(--dls-space-12);
+  padding: 10px 12px;
+  border-radius: var(--dls-radius-12);
+  background: rgba(9, 27, 55, 0.03);
+  border: 1px dashed var(--dls-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.am-sp-policy-extra__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.am-sp-policy-extra__row span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.am-sp-policy-extra__row strong {
+  font-size: var(--dls-text-xs);
+  font-weight: 600;
+  color: var(--dls-primary);
+}
+
+.am-sp-policy-extra__row em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--dls-secondary);
+  line-height: 1.35;
+}
+
+.am-sp-policy-extra__row b {
+  flex-shrink: 0;
+  font-size: var(--dls-text-xs);
+  font-weight: 800;
+  color: var(--dls-brand);
+  white-space: nowrap;
 }
 
 /* Legacy policy (commission page compact) ——— */
@@ -649,6 +696,75 @@
   margin: var(--dls-space-12) 0 0;
   font-size: var(--dls-text-xs);
   color: var(--dls-secondary);
+}
+
+.am-sp-policy__lead {
+  margin: 0 0 var(--dls-space-12);
+  font-size: var(--dls-text-xs);
+  color: var(--dls-secondary);
+  line-height: 1.4;
+}
+
+.am-sp-policy__lead strong {
+  font-weight: 800;
+  color: var(--dls-brand);
+}
+
+.am-sp-policy-benefits {
+  margin-top: var(--dls-space-14, 14px);
+  padding-top: var(--dls-space-12);
+  border-top: 1px solid var(--dls-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.am-sp-policy-benefits h4 {
+  margin: 0;
+  font-size: var(--dls-text-xs);
+  font-weight: 700;
+  color: var(--dls-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.am-sp-policy-benefits__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--dls-radius-10, 10px);
+  background: rgba(9, 27, 55, 0.03);
+  border: 1px solid var(--dls-outline-variant);
+}
+
+.am-sp-policy-benefits__row span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.am-sp-policy-benefits__row strong {
+  font-size: var(--dls-text-xs);
+  font-weight: 600;
+  color: var(--dls-primary);
+}
+
+.am-sp-policy-benefits__row em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--dls-secondary);
+  line-height: 1.35;
+}
+
+.am-sp-policy-benefits__row b {
+  flex-shrink: 0;
+  font-size: var(--dls-text-xs);
+  font-weight: 800;
+  color: var(--dls-brand);
+  white-space: nowrap;
 }
 
 .am-sp-policy--compact li {
@@ -1954,6 +2070,12 @@
   line-height: 1.3;
 }
 
+.am-sp-commission-card__type {
+  margin: -4px 0 10px;
+  font-size: 11px;
+  color: var(--dls-secondary);
+}
+
 .am-sp-pay-badge {
   flex-shrink: 0;
   padding: 3px 8px;
@@ -2044,4 +2166,43 @@
 .am-sp-commission-card__foot span:first-child {
   font-weight: 700;
   color: var(--dls-primary);
+}
+
+.am-sp-commission-card__settle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--dls-space-4, 4px);
+  padding-top: var(--dls-space-12);
+  border-top: 1px solid var(--dls-outline-variant);
+}
+
+.am-sp-commission-card__settle > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--dls-text-sm);
+}
+
+.am-sp-commission-card__settle span {
+  color: var(--dls-secondary);
+}
+
+.am-sp-commission-card__settle b {
+  font-weight: 700;
+  color: var(--dls-primary);
+}
+
+.am-sp-commission-card__settle--paid {
+  color: var(--dls-brand) !important;
+}
+
+.am-sp-commission-card__settle--pending {
+  color: #b45309 !important;
+}
+
+.am-sp-commission-card__settle-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--dls-secondary);
 }

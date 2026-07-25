@@ -11,6 +11,7 @@ import {
   MOCK_SERVICE_POINTS,
   STATUS_LABELS,
   STATUS_VARIANT,
+  sumCommission,
 } from '../../data/servicePointMock';
 
 const formatMoney = (n: number) => n.toLocaleString('vi-VN');
@@ -33,11 +34,9 @@ const ServicePointDetailPage: React.FC = () => {
     );
   }
 
-  const totalCommission = point.commission
-    ? point.commission.fixed +
-      point.commission.turnoverBonus +
-      point.commission.transactionBonus
-    : 0;
+  const totalCommission = point.commission ? sumCommission(point.commission) : 0;
+  const isConversion = point.pointType === 'conversion';
+  const c = point.commission;
 
   return (
     <div className="am-sp">
@@ -108,31 +107,52 @@ const ServicePointDetailPage: React.FC = () => {
           </div>
         </section>
 
-        {point.commission && (
+        {c && (
           <section className="am-sp-info-section">
             <h3 className="am-sp-info-section__title">Hoa hồng điểm này</h3>
             <div className="am-card am-sp-commission-mini">
-              <div className="am-sp-commission-mini__row">
-                <span>Hoa hồng cố định</span>
-                <strong>
-                  {formatMoney(point.commission.fixed)}
-                  <sup className="am-money__unit">đ</sup>
-                </strong>
-              </div>
-              <div className="am-sp-commission-mini__row">
-                <span>Thưởng doanh thu tháng đầu</span>
-                <strong>
-                  {formatMoney(point.commission.turnoverBonus)}
-                  <sup className="am-money__unit">đ</sup>
-                </strong>
-              </div>
-              <div className="am-sp-commission-mini__row">
-                <span>Thưởng giao dịch tháng đầu</span>
-                <strong>
-                  {formatMoney(point.commission.transactionBonus)}
-                  <sup className="am-money__unit">đ</sup>
-                </strong>
-              </div>
+              {isConversion ? (
+                <div className="am-sp-commission-mini__row">
+                  <span>Hoa hồng chuyển đổi</span>
+                  <strong>
+                    {formatMoney(c.conversionBonus ?? 0)}
+                    <sup className="am-money__unit">đ</sup>
+                  </strong>
+                </div>
+              ) : (
+                <>
+                  <div className="am-sp-commission-mini__row">
+                    <span>Hoàn thành mở điểm</span>
+                    <strong>
+                      {formatMoney(c.openingBonus)}
+                      <sup className="am-money__unit">đ</sup>
+                    </strong>
+                  </div>
+                  <div className="am-sp-commission-mini__row">
+                    <span>≥15 đơn thành công</span>
+                    <strong>
+                      {formatMoney(c.ordersBonus)}
+                      <sup className="am-money__unit">đ</sup>
+                    </strong>
+                  </div>
+                  <div className="am-sp-commission-mini__row">
+                    <span>Cứu hộ đầu tiên</span>
+                    <strong>
+                      {formatMoney(c.firstRescueBonus)}
+                      <sup className="am-money__unit">đ</sup>
+                    </strong>
+                  </div>
+                  {(c.monthlyCareBonus ?? 0) > 0 && (
+                    <div className="am-sp-commission-mini__row">
+                      <span>Chăm sóc tháng</span>
+                      <strong>
+                        {formatMoney(c.monthlyCareBonus!)}
+                        <sup className="am-money__unit">đ</sup>
+                      </strong>
+                    </div>
+                  )}
+                </>
+              )}
               <div className="am-sp-commission-mini__total">
                 <span>Tổng</span>
                 <strong>
