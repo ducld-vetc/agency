@@ -513,6 +513,54 @@
   color: var(--dls-brand);
 }
 
+.am-sp-policy-card__psv-intro {
+  margin: 0;
+  font-size: var(--dls-text-xs) !important;
+  color: var(--dls-secondary);
+  line-height: 1.45 !important;
+}
+
+.am-sp-policy-card--psv {
+  margin-top: var(--dls-space-12);
+  border-color: rgba(37, 99, 235, 0.18);
+  background: linear-gradient(180deg, #f3f7ff 0%, #ffffff 38%);
+}
+
+.am-sp-policy-card--psv .am-sp-policy-card__hero {
+  border-bottom-color: rgba(37, 99, 235, 0.12);
+}
+
+.am-sp-policy-card__icon--psv {
+  background: var(--dls-info);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+}
+
+.am-sp-policy-card--psv .am-sp-policy-tiers {
+  padding-bottom: var(--dls-space-16);
+}
+
+.am-sp-policy-tier__amount--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.am-sp-policy-tier__amount--stack b {
+  font-size: var(--dls-text-sm);
+  font-weight: 800;
+  color: var(--dls-brand);
+  white-space: nowrap;
+}
+
+.am-sp-policy-tier__amount--stack em {
+  font-size: 10px;
+  font-style: normal;
+  color: var(--dls-secondary);
+  white-space: nowrap;
+}
+
 .am-sp-policy-tiers {
   margin: 0;
   padding: var(--dls-space-12) var(--dls-space-16);

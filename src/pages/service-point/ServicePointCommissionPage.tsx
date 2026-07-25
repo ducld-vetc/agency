@@ -109,7 +109,6 @@ const ServicePointCommissionPage: React.FC = () => {
                   <b>
                     +{formatMoney(item.amount)}
                     <sup className="am-money__unit">đ</sup>
-                    /tháng
                   </b>
                 ) : (
                   <b>1% / 2% / 3%</b>

@@ -465,3 +465,19 @@ export const MONTHLY_CARE_POLICY = [
     note: '1% / 2% / 3% khi DT tháng > 10 / 15 / 30 triệu (chưa VAT)',
   },
 ];
+
+/** Chính sách phí sẵn sàng vận hành (PSV) cho điểm Quick Service */
+export const QS_PSV_INTRO = 'Hỗ trợ chi phí sẵn sàng vận hành theo đơn';
+
+export const QS_PSV_POLICY = [
+  {
+    label: 'Xử lý tại chỗ',
+    points: 50_000,
+    note: 'Kích bình, Thay lốp, Tiếp nhiên liệu',
+  },
+  {
+    label: 'Cẩu kéo',
+    points: 100_000,
+    note: 'Đâm, Lật, Tại nạn',
+  },
+];

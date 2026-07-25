@@ -9,7 +9,9 @@ import {
   MapPin,
   PackageCheck,
   PlusCircle,
+  Truck,
   Wallet,
+  Wrench,
 } from 'lucide-react';
 import { DlsStatusBadge, DlsTopNav } from '@dls/components';
 import {
@@ -17,6 +19,8 @@ import {
   CONVERSION_COMMISSION,
   MOCK_SERVICE_POINTS,
   MONTHLY_CARE_POLICY,
+  QS_PSV_INTRO,
+  QS_PSV_POLICY,
   STATUS_LABELS,
   STATUS_VARIANT,
   sumCommission,
@@ -26,6 +30,7 @@ import { getAverageCoverageSummary } from '../../utils/servicePointCoverage';
 const formatMoney = (n: number) => n.toLocaleString('vi-VN');
 
 const POLICY_ICONS = [BadgeCheck, PackageCheck, LifeBuoy] as const;
+const PSV_ICONS = [Wrench, Truck] as const;
 const MAX_COMMISSION = COMMISSION_POLICY.reduce((sum, item) => sum + item.amount, 0);
 
 const ServicePointHubPage: React.FC = () => {
@@ -183,12 +188,11 @@ const ServicePointHubPage: React.FC = () => {
             <div>
               <h3>Chính sách hoa hồng</h3>
               <p>
-                Điểm mở mới tối đa{' '}
+                Điểm mở tối đa{' '}
                 <strong>
                   {formatMoney(MAX_COMMISSION)}
                   <sup className="am-money__unit">đ</sup>
                 </strong>
-                /điểm
               </p>
             </div>
           </div>
@@ -235,7 +239,6 @@ const ServicePointHubPage: React.FC = () => {
                   <b>
                     +{formatMoney(item.amount)}
                     <sup className="am-money__unit">đ</sup>
-                    /tháng
                   </b>
                 ) : (
                   <b>1–3%</b>
@@ -248,6 +251,39 @@ const ServicePointHubPage: React.FC = () => {
             <Calendar size={16} strokeWidth={2} aria-hidden />
             <span>Chi trả ngày <strong>10</strong> hàng tháng cho kỳ trước</span>
           </div>
+        </section>
+
+        <section className="am-sp-policy-card am-sp-policy-card--psv am-card">
+          <div className="am-sp-policy-card__hero">
+            <span className="am-sp-policy-card__icon am-sp-policy-card__icon--psv" aria-hidden>
+              <LifeBuoy size={22} strokeWidth={2} />
+            </span>
+            <div>
+              <h3>Chính sách điểm Quick Service</h3>
+              <p className="am-sp-policy-card__psv-intro">{QS_PSV_INTRO}</p>
+            </div>
+          </div>
+
+          <ul className="am-sp-policy-tiers">
+            {QS_PSV_POLICY.map((item, index) => {
+              const Icon = PSV_ICONS[index] ?? Wrench;
+              return (
+                <li key={item.label} className="am-sp-policy-tier">
+                  <span className="am-sp-policy-tier__icon" aria-hidden>
+                    <Icon size={18} strokeWidth={2} />
+                  </span>
+                  <span className="am-sp-policy-tier__body">
+                    <strong>{item.label}</strong>
+                    <span>{item.note}</span>
+                  </span>
+                  <span className="am-sp-policy-tier__amount am-sp-policy-tier__amount--stack">
+                    <b>+{formatMoney(item.points)}</b>
+                    <em>điểm Loyalty</em>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       </div>
     </div>
