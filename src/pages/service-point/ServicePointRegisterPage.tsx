@@ -207,6 +207,7 @@ const ServicePointRegisterPage: React.FC = () => {
   const [form, setForm] = React.useState({
     pointType: '',
     zoneType: '' as PointZoneType | '',
+    pointName: '',
     address: '',
     province: '',
     ward: '',
@@ -418,6 +419,7 @@ const ServicePointRegisterPage: React.FC = () => {
       const towingOk =
         !form.supportServices.includes('towing') || hasTowingInfo(form);
       return (
+        form.pointName.trim() &&
         form.latLng.trim() &&
         form.province.trim() &&
         form.ward.trim() &&
@@ -540,6 +542,13 @@ const ServicePointRegisterPage: React.FC = () => {
         {step === 1 && (
           <section className="am-card am-sp-form">
             <h3>Thông tin địa điểm</h3>
+            <DlsTextField
+              label="Tên điểm"
+              required
+              value={form.pointName}
+              onChange={(v) => update({ pointName: v })}
+              placeholder="VD: Điểm VETC Nguyễn Văn Cừ"
+            />
             <div className="dls-field">
               <label className="dls-label">
                 Vị trí trên bản đồ<span className="dls-required">*</span>
@@ -750,6 +759,10 @@ const ServicePointRegisterPage: React.FC = () => {
               <div>
                 <dt>Loại khu vực</dt>
                 <dd>{getZoneTypeLabel(form.zoneType)}</dd>
+              </div>
+              <div>
+                <dt>Tên điểm</dt>
+                <dd>{form.pointName || '—'}</dd>
               </div>
               <div>
                 <dt>Dịch vụ hỗ trợ</dt>
