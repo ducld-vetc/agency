@@ -12,9 +12,13 @@ import {
   DlsTopNav,
 } from '@dls/components';
 import { PointZoneType, ZONE_SPACING_KM } from '../../utils/servicePointCoverage';
+import {
+  POINT_CATEGORY_OPTIONS,
+  type ServicePointCategory,
+} from '../../data/servicePointMock';
 
 const STEPS = [
-  'Phân loại',
+  'Loại đăng ký',
   'Địa điểm',
   'Chủ điểm',
   'Pháp lý & CSVC',
@@ -34,15 +38,6 @@ const POINT_TYPES = [
     description: 'Chuyển đổi/Bổ sung dịch vụ cung cấp cho điểm đã ký hợp đồng hợp tác với đơn vị trong tập đoàn Tasco.',
   },
 ] as const;
-
-/** Phân loại hình điểm (xưởng / cửa hàng / lưu động) — khác với hình thức đăng ký new/conversion. */
-const POINT_CATEGORIES = [
-  { value: 'WORKSHOP', label: 'Xưởng dịch vụ' },
-  { value: 'STORE', label: 'Cửa hàng' },
-  { value: 'MOBILE', label: 'Điểm lưu động' },
-] as const;
-
-type PointCategory = (typeof POINT_CATEGORIES)[number]['value'];
 
 const ZONE_TYPES: {
   value: PointZoneType;
@@ -161,7 +156,7 @@ const getPointTypeLabel = (value: string) =>
   POINT_TYPES.find((item) => item.value === value)?.label ?? '—';
 
 const getPointCategoryLabel = (value: string) =>
-  POINT_CATEGORIES.find((item) => item.value === value)?.label ?? '—';
+  POINT_CATEGORY_OPTIONS.find((item) => item.value === value)?.label ?? '—';
 
 const getZoneTypeLabel = (value: string) =>
   ZONE_TYPES.find((item) => item.value === value)?.label ?? '—';
@@ -219,7 +214,7 @@ const ServicePointRegisterPage: React.FC = () => {
   const [form, setForm] = React.useState({
     pointType: '',
     zoneType: '' as PointZoneType | '',
-    pointCategory: '' as PointCategory | '',
+    pointCategory: '' as ServicePointCategory | '',
     pointName: '',
     address: '',
     province: '',
@@ -496,9 +491,9 @@ const ServicePointRegisterPage: React.FC = () => {
       <div className="am-sp__scroll">
         {step === 0 && (
           <section className="am-card am-sp-form">
-            <h3>Phân loại điểm</h3>
+            <h3>Loại đăng ký</h3>
             <p className="am-sp-form__hint">Chọn loại hình đăng ký phù hợp với điểm dịch vụ của bạn.</p>
-            <div className="am-sp-point-type" role="radiogroup" aria-label="Phân loại điểm">
+            <div className="am-sp-point-type" role="radiogroup" aria-label="Loại đăng ký">
               {POINT_TYPES.map((item) => {
                 const selected = form.pointType === item.value;
                 return (
@@ -560,11 +555,8 @@ const ServicePointRegisterPage: React.FC = () => {
               label="Phân loại điểm"
               required
               value={form.pointCategory}
-              onChange={(v) => update({ pointCategory: v as PointCategory })}
-              options={POINT_CATEGORIES.map((item) => ({
-                value: item.value,
-                label: item.label,
-              }))}
+              onChange={(v) => update({ pointCategory: v as ServicePointCategory })}
+              options={POINT_CATEGORY_OPTIONS}
               placeholder="Chọn phân loại điểm"
             />
             <DlsTextField
@@ -778,7 +770,7 @@ const ServicePointRegisterPage: React.FC = () => {
             <h3>Xem lại & gửi hồ sơ</h3>
             <dl className="am-sp-review">
               <div>
-                <dt>Hình thức đăng ký</dt>
+                <dt>Loại đăng ký</dt>
                 <dd>{getPointTypeLabel(form.pointType)}</dd>
               </div>
               <div>

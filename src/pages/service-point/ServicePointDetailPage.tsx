@@ -9,6 +9,8 @@ import {
 } from '@dls/components';
 import {
   MOCK_SERVICE_POINTS,
+  POINT_CATEGORY_LABELS,
+  POINT_TYPE_LABELS,
   STATUS_LABELS,
   STATUS_VARIANT,
   sumCommission,
@@ -94,6 +96,8 @@ const ServicePointDetailPage: React.FC = () => {
         <section className="am-sp-info-section">
           <h3 className="am-sp-info-section__title">Thông tin địa điểm</h3>
           <div className="am-card am-sp-info-card">
+            <DlsDetailRow label="Loại điểm" value={POINT_CATEGORY_LABELS[point.pointCategory]} />
+            <DlsDetailRow label="Loại đăng ký" value={POINT_TYPE_LABELS[point.pointType]} />
             <DlsDetailRow label="Địa chỉ" value={point.address} multiline />
             <DlsDetailRow label="Khu vực" value={point.district} />
             <DlsDetailRow label="Diện tích" value={`${point.areaSqm} m²`} last />

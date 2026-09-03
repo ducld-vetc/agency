@@ -9,6 +9,9 @@ export type ServicePointStatus =
 
 export type ServicePointType = 'new' | 'conversion';
 
+/** Phân loại hình điểm (xưởng / cửa hàng / lưu động) — khác với hình thức đăng ký new/conversion. */
+export type ServicePointCategory = 'WORKSHOP' | 'STORE' | 'MOBILE';
+
 export type CommissionPaymentStatus = 'calculated' | 'pending_payout' | 'paid';
 
 export interface ServicePointRecord {
@@ -21,6 +24,7 @@ export interface ServicePointRecord {
   ownerName: string;
   status: ServicePointStatus;
   pointType: ServicePointType;
+  pointCategory: ServicePointCategory;
   contractSigned: boolean;
   assignedArea: string;
   assignedAreaLabel: string;
@@ -87,6 +91,18 @@ export const POINT_TYPE_LABELS: Record<ServicePointType, string> = {
   conversion: 'Điểm chuyển đổi',
 };
 
+export const POINT_CATEGORY_LABELS: Record<ServicePointCategory, string> = {
+  WORKSHOP: 'Xưởng dịch vụ',
+  STORE: 'Cửa hàng',
+  MOBILE: 'Điểm lưu động',
+};
+
+export const POINT_CATEGORY_OPTIONS: { value: ServicePointCategory; label: string }[] = [
+  { value: 'WORKSHOP', label: POINT_CATEGORY_LABELS.WORKSHOP },
+  { value: 'STORE', label: POINT_CATEGORY_LABELS.STORE },
+  { value: 'MOBILE', label: POINT_CATEGORY_LABELS.MOBILE },
+];
+
 export const CONTRACT_LABELS = {
   signed: 'Đã ký hợp đồng',
   unsigned: 'Chưa ký HĐ',
@@ -108,6 +124,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Nguyễn Minh Tuấn',
     status: 'pending',
     pointType: 'new',
+    pointCategory: 'STORE',
     contractSigned: false,
     assignedArea: 'hcm',
     assignedAreaLabel: 'TP. Hồ Chí Minh',
@@ -130,6 +147,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Trần Thị Hương',
     status: 'activated',
     pointType: 'conversion',
+    pointCategory: 'WORKSHOP',
     contractSigned: true,
     assignedArea: 'hcm',
     assignedAreaLabel: 'TP. Hồ Chí Minh',
@@ -166,6 +184,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Lê Hoàng Nam',
     status: 'rejected',
     pointType: 'new',
+    pointCategory: 'MOBILE',
     contractSigned: false,
     assignedArea: 'hcm',
     assignedAreaLabel: 'TP. Hồ Chí Minh',
@@ -189,6 +208,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Võ Quốc Bảo',
     status: 'activated',
     pointType: 'new',
+    pointCategory: 'STORE',
     contractSigned: true,
     assignedArea: 'hcm',
     assignedAreaLabel: 'TP. Hồ Chí Minh',
@@ -225,6 +245,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Phan Thị Mai',
     status: 'approved',
     pointType: 'conversion',
+    pointCategory: 'WORKSHOP',
     contractSigned: true,
     assignedArea: 'hcm',
     assignedAreaLabel: 'TP. Hồ Chí Minh',
@@ -248,6 +269,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Đặng Văn Khoa',
     status: 'activated',
     pointType: 'new',
+    pointCategory: 'MOBILE',
     contractSigned: false,
     assignedArea: 'hcm',
     assignedAreaLabel: 'TP. Hồ Chí Minh',
@@ -272,6 +294,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Lý Minh Châu',
     status: 'pending',
     pointType: 'new',
+    pointCategory: 'STORE',
     contractSigned: false,
     assignedArea: 'hcm',
     assignedAreaLabel: 'TP. Hồ Chí Minh',
@@ -294,6 +317,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Phạm Văn Đức',
     status: 'approved',
     pointType: 'conversion',
+    pointCategory: 'WORKSHOP',
     contractSigned: true,
     assignedArea: 'hn',
     assignedAreaLabel: 'Hà Nội',
@@ -317,6 +341,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Nguyễn Thu Hà',
     status: 'activated',
     pointType: 'conversion',
+    pointCategory: 'STORE',
     contractSigned: true,
     assignedArea: 'hn',
     assignedAreaLabel: 'Hà Nội',
@@ -341,6 +366,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Hoàng Anh Tuấn',
     status: 'activated',
     pointType: 'new',
+    pointCategory: 'MOBILE',
     contractSigned: true,
     assignedArea: 'hn',
     assignedAreaLabel: 'Hà Nội',
@@ -365,6 +391,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Trịnh Quốc Huy',
     status: 'pending',
     pointType: 'new',
+    pointCategory: 'WORKSHOP',
     contractSigned: false,
     assignedArea: 'hn',
     assignedAreaLabel: 'Hà Nội',
@@ -387,6 +414,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Bùi Thanh Sơn',
     status: 'approved',
     pointType: 'conversion',
+    pointCategory: 'STORE',
     contractSigned: true,
     assignedArea: 'hn',
     assignedAreaLabel: 'Hà Nội',
@@ -410,6 +438,7 @@ export const MOCK_SERVICE_POINTS: ServicePointRecord[] = [
     ownerName: 'Ngô Thị Lan',
     status: 'activated',
     pointType: 'new',
+    pointCategory: 'MOBILE',
     contractSigned: false,
     assignedArea: 'hn',
     assignedAreaLabel: 'Hà Nội',
