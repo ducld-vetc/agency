@@ -65,75 +65,6 @@ export const DlsTextField: React.FC<{
   );
 };
 
-/* ——— Select / droplist (DLS Select) ——— */
-export const DlsSelect: React.FC<{
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  placeholder?: string;
-  required?: boolean;
-  error?: string;
-}> = ({ label, value, onChange, options, placeholder, required, error }) => (
-  <div className="dls-field">
-    <DlsLabel required={required}>{label}</DlsLabel>
-    <select
-      className="dls-select"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-invalid={error ? true : undefined}
-    >
-      {placeholder && (
-        <option value="" disabled>
-          {placeholder}
-        </option>
-      )}
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
-    {error && <p className="dls-field-error" role="alert">{error}</p>}
-  </div>
-);
-
-export const DlsSelectGroup: React.FC<{
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  groups: { label: string; options: { value: string; label: string }[] }[];
-  placeholder?: string;
-  required?: boolean;
-  error?: string;
-}> = ({ label, value, onChange, groups, placeholder, required, error }) => (
-  <div className="dls-field">
-    <DlsLabel required={required}>{label}</DlsLabel>
-    <select
-      className="dls-select"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-invalid={error ? true : undefined}
-    >
-      {placeholder && (
-        <option value="" disabled>
-          {placeholder}
-        </option>
-      )}
-      {groups.map((group) => (
-        <optgroup key={group.label} label={group.label}>
-          {group.options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
-    {error && <p className="dls-field-error" role="alert">{error}</p>}
-  </div>
-);
-
 export type DlsOptionGroup = {
   label: string;
   options: { value: string; label: string }[];
@@ -145,6 +76,183 @@ const findOptionLabel = (groups: DlsOptionGroup[], value: string) => {
     if (match) return match.label;
   }
   return value;
+};
+
+/* ——— Select / droplist (DLS Select — sheet, không dùng native <select>) ——— */
+export const DlsSelect: React.FC<{
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  sheetTitle?: string;
+}> = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = 'Chọn',
+  required,
+  error,
+  sheetTitle,
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const selectedLabel = options.find((opt) => opt.value === value)?.label;
+
+  const closeSheet = () => setOpen(false);
+
+  return (
+    <>
+      <div className="dls-field">
+        <DlsLabel required={required}>{label}</DlsLabel>
+        <button
+          type="button"
+          className={`dls-select-trigger${error ? ' dls-select-trigger--error' : ''}${
+            value ? '' : ' dls-select-trigger--placeholder'
+          }`}
+          onClick={() => setOpen(true)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-invalid={error ? true : undefined}
+        >
+          <span>{selectedLabel || placeholder}</span>
+          <ChevronDown size={18} strokeWidth={2} aria-hidden />
+        </button>
+        {error && <p className="dls-field-error" role="alert">{error}</p>}
+      </div>
+
+      {open &&
+        createPortal(
+          <div
+            className="dls-sheet-overlay"
+            role="dialog"
+            aria-modal
+            aria-label={sheetTitle ?? label}
+            onClick={closeSheet}
+          >
+            <div className="dls-sheet" onClick={(e) => e.stopPropagation()}>
+              <DlsSheetHeader title={sheetTitle ?? label} onClose={closeSheet} />
+              <div className="dls-sheet-body dls-sheet-body--form">
+                <div className="dls-reason-list" role="listbox" aria-label={label}>
+                  {options.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="option"
+                      aria-selected={value === opt.value}
+                      className={`dls-reason-item${value === opt.value ? ' dls-reason-item--on' : ''}`}
+                      onClick={() => {
+                        onChange(opt.value);
+                        closeSheet();
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <DlsHomeIndicator />
+            </div>
+          </div>,
+          getDlsOverlayRoot(),
+        )}
+    </>
+  );
+};
+
+export const DlsSelectGroup: React.FC<{
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  groups: { label: string; options: { value: string; label: string }[] }[];
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  sheetTitle?: string;
+}> = ({
+  label,
+  value,
+  onChange,
+  groups,
+  placeholder = 'Chọn',
+  required,
+  error,
+  sheetTitle,
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const selectedLabel = findOptionLabel(groups, value);
+  const hasValue = Boolean(value && groups.some((g) => g.options.some((o) => o.value === value)));
+
+  const closeSheet = () => setOpen(false);
+
+  return (
+    <>
+      <div className="dls-field">
+        <DlsLabel required={required}>{label}</DlsLabel>
+        <button
+          type="button"
+          className={`dls-select-trigger${error ? ' dls-select-trigger--error' : ''}${
+            hasValue ? '' : ' dls-select-trigger--placeholder'
+          }`}
+          onClick={() => setOpen(true)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-invalid={error ? true : undefined}
+        >
+          <span>{hasValue ? selectedLabel : placeholder}</span>
+          <ChevronDown size={18} strokeWidth={2} aria-hidden />
+        </button>
+        {error && <p className="dls-field-error" role="alert">{error}</p>}
+      </div>
+
+      {open &&
+        createPortal(
+          <div
+            className="dls-sheet-overlay"
+            role="dialog"
+            aria-modal
+            aria-label={sheetTitle ?? label}
+            onClick={closeSheet}
+          >
+            <div className="dls-sheet" onClick={(e) => e.stopPropagation()}>
+              <DlsSheetHeader title={sheetTitle ?? label} onClose={closeSheet} />
+              <div className="dls-sheet-body dls-sheet-body--form">
+                <div className="dls-reason-list" role="listbox" aria-label={label}>
+                  {groups.map((group) => (
+                    <div key={group.label} className="dls-multi-select-group">
+                      <p className="dls-multi-select-group__title">{group.label}</p>
+                      <div className="dls-multi-select-group__list">
+                        {group.options.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            role="option"
+                            aria-selected={value === opt.value}
+                            className={`dls-reason-item${
+                              value === opt.value ? ' dls-reason-item--on' : ''
+                            }`}
+                            onClick={() => {
+                              onChange(opt.value);
+                              closeSheet();
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <DlsHomeIndicator />
+            </div>
+          </div>,
+          getDlsOverlayRoot(),
+        )}
+    </>
+  );
 };
 
 /* ——— Multi-select field (custom sheet, không dùng native picker) ——— */

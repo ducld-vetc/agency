@@ -27,8 +27,9 @@
   border-radius: var(--dls-radius-12);
   background-color: var(--dls-theme-variant);
   font-family: var(--dls-font);
-  font-size: var(--dls-text-sm);
+  font-size: var(--dls-text-base);
   line-height: var(--dls-lh-base);
+  font-weight: 400;
   color: var(--dls-primary);
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238f9098' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -41,6 +42,58 @@
   border-color: var(--dls-brand);
   background-color: var(--dls-theme);
   box-shadow: 0 0 0 3px rgba(37, 165, 94, 0.15);
+}
+
+.dls-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dls-space-8);
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--dls-space-16);
+  border: 1px solid var(--dls-outline-variant);
+  border-radius: var(--dls-radius-12);
+  background: var(--dls-theme-variant);
+  font-family: var(--dls-font);
+  font-size: var(--dls-text-base);
+  line-height: var(--dls-lh-base);
+  font-weight: 400;
+  color: var(--dls-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dls-select-trigger span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dls-select-trigger svg {
+  flex-shrink: 0;
+  color: var(--dls-secondary);
+}
+
+.dls-select-trigger--placeholder {
+  color: var(--dls-secondary);
+}
+
+.dls-select-trigger--placeholder span {
+  color: var(--dls-secondary);
+}
+
+.dls-select-trigger:focus {
+  outline: none;
+  border-color: var(--dls-brand);
+  background: var(--dls-theme);
+  box-shadow: 0 0 0 3px rgba(37, 165, 94, 0.15);
+}
+
+.dls-select-trigger--error {
+  border-color: var(--dls-red);
 }
 
 /* ——— Multi-select trigger & sheet ——— */
@@ -56,8 +109,8 @@
   border-radius: var(--dls-radius-12);
   background-color: var(--dls-theme-variant);
   font-family: var(--dls-font);
-  font-size: var(--dls-text-sm);
-  line-height: var(--dls-lh-sm);
+  font-size: var(--dls-text-base);
+  line-height: var(--dls-lh-base);
   text-align: left;
   cursor: pointer;
   color: var(--dls-primary);
@@ -1251,9 +1304,9 @@
   border-radius: var(--dls-radius-12);
   background: var(--dls-theme);
   font-family: var(--dls-font);
-  font-size: var(--dls-text-sm);
-  font-weight: 500;
-  line-height: var(--dls-lh-sm);
+  font-size: var(--dls-text-base);
+  font-weight: 400;
+  line-height: var(--dls-lh-base);
   text-align: left;
   cursor: pointer;
   color: var(--dls-primary);

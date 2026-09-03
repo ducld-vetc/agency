@@ -35,6 +35,15 @@ const POINT_TYPES = [
   },
 ] as const;
 
+/** Phân loại hình điểm (xưởng / cửa hàng / lưu động) — khác với hình thức đăng ký new/conversion. */
+const POINT_CATEGORIES = [
+  { value: 'WORKSHOP', label: 'Xưởng dịch vụ' },
+  { value: 'STORE', label: 'Cửa hàng' },
+  { value: 'MOBILE', label: 'Điểm lưu động' },
+] as const;
+
+type PointCategory = (typeof POINT_CATEGORIES)[number]['value'];
+
 const ZONE_TYPES: {
   value: PointZoneType;
   label: string;
@@ -151,6 +160,9 @@ const hasTowingInfo = (form: {
 const getPointTypeLabel = (value: string) =>
   POINT_TYPES.find((item) => item.value === value)?.label ?? '—';
 
+const getPointCategoryLabel = (value: string) =>
+  POINT_CATEGORIES.find((item) => item.value === value)?.label ?? '—';
+
 const getZoneTypeLabel = (value: string) =>
   ZONE_TYPES.find((item) => item.value === value)?.label ?? '—';
 
@@ -207,6 +219,7 @@ const ServicePointRegisterPage: React.FC = () => {
   const [form, setForm] = React.useState({
     pointType: '',
     zoneType: '' as PointZoneType | '',
+    pointCategory: '' as PointCategory | '',
     pointName: '',
     address: '',
     province: '',
@@ -419,6 +432,7 @@ const ServicePointRegisterPage: React.FC = () => {
       const towingOk =
         !form.supportServices.includes('towing') || hasTowingInfo(form);
       return (
+        form.pointCategory &&
         form.pointName.trim() &&
         form.latLng.trim() &&
         form.province.trim() &&
@@ -542,6 +556,17 @@ const ServicePointRegisterPage: React.FC = () => {
         {step === 1 && (
           <section className="am-card am-sp-form">
             <h3>Thông tin địa điểm</h3>
+            <DlsSelect
+              label="Phân loại điểm"
+              required
+              value={form.pointCategory}
+              onChange={(v) => update({ pointCategory: v as PointCategory })}
+              options={POINT_CATEGORIES.map((item) => ({
+                value: item.value,
+                label: item.label,
+              }))}
+              placeholder="Chọn phân loại điểm"
+            />
             <DlsTextField
               label="Tên điểm"
               required
@@ -753,12 +778,16 @@ const ServicePointRegisterPage: React.FC = () => {
             <h3>Xem lại & gửi hồ sơ</h3>
             <dl className="am-sp-review">
               <div>
-                <dt>Phân loại điểm</dt>
+                <dt>Hình thức đăng ký</dt>
                 <dd>{getPointTypeLabel(form.pointType)}</dd>
               </div>
               <div>
                 <dt>Loại khu vực</dt>
                 <dd>{getZoneTypeLabel(form.zoneType)}</dd>
+              </div>
+              <div>
+                <dt>Phân loại điểm</dt>
+                <dd>{getPointCategoryLabel(form.pointCategory)}</dd>
               </div>
               <div>
                 <dt>Tên điểm</dt>
