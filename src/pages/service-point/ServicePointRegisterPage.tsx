@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Check, MapPin, LocateFixed, X, ChevronRight } from 'lucide-react';
+import { Camera, Check, MapPin, LocateFixed, X, ChevronRight, Plus, Pencil, Trash2, Truck } from 'lucide-react';
 import {
   DlsBrandButton,
   DlsCheckbox,
@@ -11,11 +11,37 @@ import {
   DlsTextField,
   DlsTopNav,
 } from '@dls/components';
+import { getDlsOverlayRoot } from '@dls/portal';
+import { createPortal } from 'react-dom';
 import { PointZoneType, ZONE_SPACING_KM } from '../../utils/servicePointCoverage';
 import {
   POINT_CATEGORY_OPTIONS,
   type ServicePointCategory,
 } from '../../data/servicePointMock';
+
+type RescueVehicle = {
+  id: string;
+  vehicleType: string;
+  capacity: string;
+  licensePlate: string;
+};
+
+const emptyVehicleDraft = (): Omit<RescueVehicle, 'id'> => ({
+  vehicleType: '',
+  capacity: '',
+  licensePlate: '',
+});
+
+const isVehicleComplete = (v: Pick<RescueVehicle, 'vehicleType' | 'capacity' | 'licensePlate'>) =>
+  Boolean(v.vehicleType.trim() && v.capacity.trim() && v.licensePlate.trim());
+
+const formatCapacity = (capacity: string) => {
+  const value = capacity.trim();
+  return /ton/i.test(value) ? value : `${value} ton`;
+};
+
+const formatVehicleLine = (v: Pick<RescueVehicle, 'vehicleType' | 'capacity' | 'licensePlate'>) =>
+  `${v.licensePlate} · ${formatCapacity(v.capacity)} · ${v.vehicleType}`;
 
 const STEPS = [
   'Loại đăng ký',
@@ -146,12 +172,6 @@ const getSupportServiceLabel = (value: string) => {
 const getSupportServicesLabel = (values: string[]) =>
   values.length ? values.map((value) => getSupportServiceLabel(value)).join(', ') : '—';
 
-const hasTowingInfo = (form: {
-  towingVehicleType: string;
-  towingCapacity: string;
-  towingLicensePlate: string;
-}) => Boolean(form.towingVehicleType && form.towingCapacity && form.towingLicensePlate);
-
 const getPointTypeLabel = (value: string) =>
   POINT_TYPES.find((item) => item.value === value)?.label ?? '—';
 
@@ -203,13 +223,9 @@ const ServicePointRegisterPage: React.FC = () => {
   const [mapOpen, setMapOpen] = React.useState(false);
   const [draftPin, setDraftPin] = React.useState<{ x: number; y: number } | null>(null);
   const [draftLatLng, setDraftLatLng] = React.useState('');
-  const [towingDialogOpen, setTowingDialogOpen] = React.useState(false);
-  const [pendingServicesDraft, setPendingServicesDraft] = React.useState<string[]>([]);
-  const [towingDraft, setTowingDraft] = React.useState({
-    vehicleType: '',
-    capacity: '',
-    licensePlate: '',
-  });
+  const [vehicleSheetOpen, setVehicleSheetOpen] = React.useState(false);
+  const [editingVehicleId, setEditingVehicleId] = React.useState<string | null>(null);
+  const [vehicleDraft, setVehicleDraft] = React.useState(emptyVehicleDraft);
 
   const [form, setForm] = React.useState({
     pointType: '',
@@ -222,9 +238,7 @@ const ServicePointRegisterPage: React.FC = () => {
     area: '',
     latLng: '',
     supportServices: [] as string[],
-    towingVehicleType: '',
-    towingCapacity: '',
-    towingLicensePlate: '',
+    rescueVehicles: [] as RescueVehicle[],
     locationNote: '',
     ownerName: '',
     ownerPhone: '',
@@ -242,73 +256,71 @@ const ServicePointRegisterPage: React.FC = () => {
 
   const update = (patch: Partial<typeof form>) => setForm((prev) => ({ ...prev, ...patch }));
 
-  const applySupportServices = (services: string[]) => {
-    const includesTowing = services.includes('towing');
-    update({
-      supportServices: services,
-      ...(includesTowing
-        ? {}
-        : {
-            towingVehicleType: '',
-            towingCapacity: '',
-            towingLicensePlate: '',
-          }),
-    });
-  };
+  const needsRescueVehicles = form.supportServices.includes('towing');
 
   const handleServicesConfirm = (draft: string[]) => {
-    if (draft.includes('towing') && !hasTowingInfo(form)) {
-      setPendingServicesDraft(draft);
-      setTowingDraft({
-        vehicleType: form.towingVehicleType,
-        capacity: form.towingCapacity,
-        licensePlate: form.towingLicensePlate,
-      });
-      setTowingDialogOpen(true);
-      return;
-    }
-
-    applySupportServices(draft);
-    setPendingServicesDraft([]);
-  };
-
-  const closeTowingDialog = () => {
-    setTowingDialogOpen(false);
-    if (hasTowingInfo(form)) {
-      setPendingServicesDraft([]);
-      return;
-    }
-
-    const withoutTowing = pendingServicesDraft.filter((item) => item !== 'towing');
-    if (pendingServicesDraft.length > 0) {
-      applySupportServices(withoutTowing);
-    } else {
-      applySupportServices(form.supportServices.filter((item) => item !== 'towing'));
-    }
-    setPendingServicesDraft([]);
-  };
-
-  const confirmTowingDialog = () => {
-    const nextServices = pendingServicesDraft.length
-      ? pendingServicesDraft
-      : form.supportServices.includes('towing')
-        ? form.supportServices
-        : [...form.supportServices, 'towing'];
-
     update({
-      supportServices: nextServices,
-      towingVehicleType: towingDraft.vehicleType,
-      towingCapacity: towingDraft.capacity,
-      towingLicensePlate: towingDraft.licensePlate.trim().toUpperCase(),
+      supportServices: draft,
+      ...(draft.includes('towing') ? {} : { rescueVehicles: [] }),
     });
-    setPendingServicesDraft([]);
-    setTowingDialogOpen(false);
   };
 
-  const towingDraftValid =
-    towingDraft.vehicleType.trim() &&
-    towingDraft.capacity.trim() &&
-    towingDraft.licensePlate.trim();
+  const openAddVehicle = () => {
+    setEditingVehicleId(null);
+    setVehicleDraft(emptyVehicleDraft());
+    setVehicleSheetOpen(true);
+  };
+
+  const openEditVehicle = (vehicle: RescueVehicle) => {
+    setEditingVehicleId(vehicle.id);
+    setVehicleDraft({
+      vehicleType: vehicle.vehicleType,
+      capacity: vehicle.capacity,
+      licensePlate: vehicle.licensePlate,
+    });
+    setVehicleSheetOpen(true);
+  };
+
+  const closeVehicleSheet = () => {
+    setVehicleSheetOpen(false);
+    setEditingVehicleId(null);
+    setVehicleDraft(emptyVehicleDraft());
+  };
+
+  const saveVehicleDraft = (andContinue: boolean) => {
+    if (!isVehicleComplete(vehicleDraft)) return;
+
+    const nextVehicle: RescueVehicle = {
+      id: editingVehicleId ?? `rv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      vehicleType: vehicleDraft.vehicleType,
+      capacity: vehicleDraft.capacity.trim(),
+      licensePlate: vehicleDraft.licensePlate.trim().toUpperCase(),
+    };
+
+    setForm((prev) => ({
+      ...prev,
+      rescueVehicles: editingVehicleId
+        ? prev.rescueVehicles.map((item) => (item.id === editingVehicleId ? nextVehicle : item))
+        : [...prev.rescueVehicles, nextVehicle],
+    }));
+
+    if (andContinue && !editingVehicleId) {
+      setEditingVehicleId(null);
+      setVehicleDraft(emptyVehicleDraft());
+      return;
+    }
+
+    closeVehicleSheet();
+  };
+
+  const removeVehicle = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      rescueVehicles: prev.rescueVehicles.filter((item) => item.id !== id),
+    }));
+  };
+
+  const vehicleDraftValid = isVehicleComplete(vehicleDraft);
 
   const formatCoords = (lat: number, lng: number) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
@@ -424,8 +436,7 @@ const ServicePointRegisterPage: React.FC = () => {
   const canNext = () => {
     if (step === 0) return Boolean(form.pointType && form.zoneType);
     if (step === 1) {
-      const towingOk =
-        !form.supportServices.includes('towing') || hasTowingInfo(form);
+      const vehiclesOk = !needsRescueVehicles || form.rescueVehicles.length > 0;
       return (
         form.pointCategory &&
         form.pointName.trim() &&
@@ -433,7 +444,7 @@ const ServicePointRegisterPage: React.FC = () => {
         form.province.trim() &&
         form.ward.trim() &&
         Number(form.area) >= 10 &&
-        towingOk
+        vehiclesOk
       );
     }
     if (step === 2) return form.ownerName.trim() && form.ownerPhone.trim() && form.ownerId.trim();
@@ -635,28 +646,80 @@ const ServicePointRegisterPage: React.FC = () => {
               placeholder="Chọn dịch vụ hỗ trợ"
               sheetTitle="Dịch vụ hỗ trợ"
             />
-            {form.supportServices.includes('towing') && hasTowingInfo(form) && (
-                <div className="dls-info-banner dls-info-banner--muted">
-                  <strong>Xe gặp sự cố:</strong> {form.towingVehicleType} · {form.towingCapacity} ·{' '}
-                  {form.towingLicensePlate}
-                  <button
-                    type="button"
-                    className="dls-text-link"
-                    style={{ marginLeft: 8 }}
-                    onClick={() => {
-                      setPendingServicesDraft(form.supportServices);
-                      setTowingDraft({
-                        vehicleType: form.towingVehicleType,
-                        capacity: form.towingCapacity,
-                        licensePlate: form.towingLicensePlate,
-                      });
-                      setTowingDialogOpen(true);
-                    }}
-                  >
-                    Sửa
-                  </button>
+            {needsRescueVehicles && (
+              <div className="dls-field am-sp-vehicle-field">
+                <div className="am-sp-vehicle-field__head">
+                  <label className="dls-label am-sp-vehicle-field__label">
+                    Xe cứu hộ<span className="dls-required">*</span>
+                  </label>
+                  {form.rescueVehicles.length > 0 && (
+                    <span className="am-sp-vehicle-field__badge">
+                      {form.rescueVehicles.length} xe
+                    </span>
+                  )}
                 </div>
-              )}
+
+                {form.rescueVehicles.length === 0 ? (
+                  <div className="am-sp-vehicle-empty">
+                    <span className="am-sp-vehicle-empty__icon" aria-hidden>
+                      <Truck size={22} strokeWidth={2} />
+                    </span>
+                    <p>Đã chọn Cẩu kéo — thêm ít nhất 1 xe cứu hộ. Có thể thêm nhiều xe.</p>
+                    <button type="button" className="am-sp-vehicle-add" onClick={openAddVehicle}>
+                      <Plus size={16} strokeWidth={2.5} />
+                      Thêm xe cứu hộ
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <ul className="am-sp-vehicle-list">
+                      {form.rescueVehicles.map((vehicle, index) => (
+                        <li key={vehicle.id} className="am-sp-vehicle-list__item">
+                          <span className="am-sp-vehicle-list__icon" aria-hidden>
+                            {index + 1}
+                          </span>
+                          <div className="am-sp-vehicle-list__body">
+                            <div className="am-sp-vehicle-list__title">
+                              <strong>{vehicle.licensePlate}</strong>
+                            </div>
+                            <div className="am-sp-vehicle-list__meta">
+                              <span className="am-sp-vehicle-list__chip">
+                                {formatCapacity(vehicle.capacity)}
+                              </span>
+                              <span className="am-sp-vehicle-list__chip">
+                                {vehicle.vehicleType}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="am-sp-vehicle-list__actions">
+                            <button
+                              type="button"
+                              className="am-sp-vehicle-list__icon-btn"
+                              aria-label={`Sửa xe ${vehicle.licensePlate || index + 1}`}
+                              onClick={() => openEditVehicle(vehicle)}
+                            >
+                              <Pencil size={15} strokeWidth={2.25} />
+                            </button>
+                            <button
+                              type="button"
+                              className="am-sp-vehicle-list__icon-btn am-sp-vehicle-list__icon-btn--danger"
+                              aria-label={`Xóa xe ${vehicle.licensePlate || index + 1}`}
+                              onClick={() => removeVehicle(vehicle.id)}
+                            >
+                              <Trash2 size={15} strokeWidth={2.25} />
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <button type="button" className="am-sp-vehicle-add" onClick={openAddVehicle}>
+                      <Plus size={16} strokeWidth={2.5} />
+                      Thêm xe khác
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             <DlsTextField
               label="Mô tả vị trí"
               multiline
@@ -787,19 +850,23 @@ const ServicePointRegisterPage: React.FC = () => {
               </div>
               <div>
                 <dt>Dịch vụ hỗ trợ</dt>
-                <dd>
-                  {getSupportServicesLabel(form.supportServices)}
-                  {form.supportServices.includes('towing') && hasTowingInfo(form) && (
-                    <>
-                      <br />
-                      <small>
-                        Xe gặp sự cố: {form.towingVehicleType} · {form.towingCapacity} ·{' '}
-                        {form.towingLicensePlate}
-                      </small>
-                    </>
-                  )}
-                </dd>
+                <dd>{getSupportServicesLabel(form.supportServices)}</dd>
               </div>
+              {needsRescueVehicles && (
+                <div>
+                  <dt>Xe cứu hộ</dt>
+                  <dd>
+                    {form.rescueVehicles.length
+                      ? form.rescueVehicles.map((v) => (
+                          <React.Fragment key={v.id}>
+                            {formatVehicleLine(v)}
+                            <br />
+                          </React.Fragment>
+                        ))
+                      : '—'}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt>Toạ độ (bản đồ)</dt>
                 <dd>{form.latLng || '—'}</dd>
@@ -858,67 +925,87 @@ const ServicePointRegisterPage: React.FC = () => {
         </div>
       </div>
 
-      {towingDialogOpen && (
-        <div
-          className="dls-sheet-overlay"
-          role="dialog"
-          aria-modal
-          aria-label="Thông tin xe cẩu kéo"
-          onClick={closeTowingDialog}
-        >
+      {vehicleSheetOpen &&
+        createPortal(
           <div
-            className="dls-sheet am-sp-towing-sheet"
-            onClick={(e) => e.stopPropagation()}
+            className="dls-sheet-overlay"
+            role="dialog"
+            aria-modal
+            aria-label={editingVehicleId ? 'Sửa xe cứu hộ' : 'Thêm xe cứu hộ'}
+            onClick={closeVehicleSheet}
           >
-            <DlsSheetHandle />
-            <div className="dls-sheet-header">
-              <div className="dls-sheet-header-row">
-                <h2 className="dls-sheet-title">Thông tin cẩu kéo</h2>
-                <button
-                  type="button"
-                  className="dls-sheet-close"
-                  onClick={closeTowingDialog}
-                  aria-label="Đóng"
-                >
-                  <X size={20} />
-                </button>
+            <div
+              className="dls-sheet am-sp-towing-sheet"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DlsSheetHandle />
+              <div className="dls-sheet-header">
+                <div className="dls-sheet-header-row">
+                  <h2 className="dls-sheet-title">
+                    {editingVehicleId ? 'Sửa xe cứu hộ' : 'Thêm xe cứu hộ'}
+                  </h2>
+                  <button
+                    type="button"
+                    className="dls-sheet-close"
+                    onClick={closeVehicleSheet}
+                    aria-label="Đóng"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="dls-sheet-body dls-sheet-body--form">
+                {!editingVehicleId && form.rescueVehicles.length > 0 && (
+                  <p className="am-sp-form__hint">
+                    Đã có {form.rescueVehicles.length} xe. Điền thông tin để thêm xe tiếp theo.
+                  </p>
+                )}
+                <DlsSelect
+                  label="Loại xe cứu hộ"
+                  required
+                  value={vehicleDraft.vehicleType}
+                  onChange={(v) => setVehicleDraft((prev) => ({ ...prev, vehicleType: v }))}
+                  options={RESCUE_VEHICLE_TYPES.map((item) => ({
+                    value: item.value,
+                    label: item.label,
+                  }))}
+                  placeholder="Chọn loại xe cứu hộ"
+                />
+                <DlsTextField
+                  label="Trọng tải kéo xe"
+                  required
+                  value={vehicleDraft.capacity}
+                  onChange={(v) => setVehicleDraft((prev) => ({ ...prev, capacity: v }))}
+                  placeholder="VD: 2.5 tấn"
+                />
+                <DlsTextField
+                  label="Biển số xe"
+                  required
+                  value={vehicleDraft.licensePlate}
+                  onChange={(v) => setVehicleDraft((prev) => ({ ...prev, licensePlate: v }))}
+                  placeholder="VD: 51A-123.45"
+                />
+              </div>
+              <div className="dls-sheet-footer am-sp-vehicle-sheet__footer">
+                {editingVehicleId ? (
+                  <DlsBrandButton disabled={!vehicleDraftValid} onClick={() => saveVehicleDraft(false)}>
+                    Lưu thay đổi
+                  </DlsBrandButton>
+                ) : (
+                  <>
+                    <DlsBrandButton disabled={!vehicleDraftValid} onClick={() => saveVehicleDraft(true)}>
+                      Thêm & nhập xe khác
+                    </DlsBrandButton>
+                    <DlsNeutralButton disabled={!vehicleDraftValid} onClick={() => saveVehicleDraft(false)}>
+                      Thêm & đóng
+                    </DlsNeutralButton>
+                  </>
+                )}
               </div>
             </div>
-            <div className="dls-sheet-body dls-sheet-body--form">
-              <DlsSelect
-                label="Loại xe cứu hộ"
-                required
-                value={towingDraft.vehicleType}
-                onChange={(v) => setTowingDraft((prev) => ({ ...prev, vehicleType: v }))}
-                options={RESCUE_VEHICLE_TYPES.map((item) => ({
-                  value: item.value,
-                  label: item.label,
-                }))}
-                placeholder="Chọn loại xe cứu hộ"
-              />
-              <DlsTextField
-                label="Trọng tải kéo xe"
-                required
-                value={towingDraft.capacity}
-                onChange={(v) => setTowingDraft((prev) => ({ ...prev, capacity: v }))}
-                placeholder="VD: 2.5 tấn"
-              />
-              <DlsTextField
-                label="Biển số xe"
-                required
-                value={towingDraft.licensePlate}
-                onChange={(v) => setTowingDraft((prev) => ({ ...prev, licensePlate: v }))}
-                placeholder="VD: 51A-123.45"
-              />
-            </div>
-            <div className="dls-sheet-footer dls-sheet-footer--single">
-              <DlsBrandButton disabled={!towingDraftValid} onClick={confirmTowingDialog}>
-                Xác nhận
-              </DlsBrandButton>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          getDlsOverlayRoot(),
+        )}
 
       {mapOpen && (
         <div className="am-sp-map-fs" role="dialog" aria-label="Chọn vị trí trên bản đồ">
